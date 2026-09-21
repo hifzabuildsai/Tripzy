@@ -1,10 +1,56 @@
 from fastapi.testclient import TestClient
 
 import app.api as api_module
+from app.models.state import TripState
 from app.services.in_memory_trip_repository import (
     InMemoryTripRepository,
 )
 from app.services.session_registry import SessionRegistry
+from app.services.trip_repository import (
+    TripRepository,
+    TripRepositoryError,
+)
+
+
+class FailingTripRepository(TripRepository):
+    """
+    Repository test double that simulates an
+    unavailable persistence service.
+    """
+
+    def create(
+        self,
+        trip_id: str,
+        state: TripState,
+    ) -> None:
+        raise TripRepositoryError(
+            "Persistence unavailable."
+        )
+
+    def get(
+        self,
+        trip_id: str,
+    ) -> TripState | None:
+        raise TripRepositoryError(
+            "Persistence unavailable."
+        )
+
+    def save(
+        self,
+        trip_id: str,
+        state: TripState,
+    ) -> None:
+        raise TripRepositoryError(
+            "Persistence unavailable."
+        )
+
+    def exists(
+        self,
+        trip_id: str,
+    ) -> bool:
+        raise TripRepositoryError(
+            "Persistence unavailable."
+        )
 
 
 def build_client() -> TestClient:
@@ -15,6 +61,19 @@ def build_client() -> TestClient:
 
     api_module.session_registry = SessionRegistry(
         repository=InMemoryTripRepository()
+    )
+
+    return TestClient(api_module.app)
+
+
+def build_failing_client() -> TestClient:
+    """
+    Create an API client whose persistence layer
+    intentionally fails.
+    """
+
+    api_module.session_registry = SessionRegistry(
+        repository=FailingTripRepository()
     )
 
     return TestClient(api_module.app)
@@ -112,3 +171,75 @@ def test_empty_message_is_rejected() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_create_trip_returns_503_when_persistence_fails() -> None:
+    client = build_failing_client()
+
+    response = client.post("/trips")
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": (
+            "Trip persistence service is "
+            "temporarily unavailable."
+        ),
+    }
+
+
+def test_get_trip_returns_503_when_persistence_fails() -> None:
+    client = build_failing_client()
+
+    response = client.get(
+        "/trips/"
+        "00000000-0000-0000-0000-000000000000"
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": (
+            "Trip persistence service is "
+            "temporarily unavailable."
+        ),
+    }
+
+
+def test_message_returns_503_when_persistence_fails() -> None:
+    client = build_failing_client()
+
+    response = client.post(
+        (
+            "/trips/"
+            "00000000-0000-0000-0000-000000000000"
+            "/messages"
+        ),
+        json={
+            "message": "Plan a trip to Istanbul.",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": (
+            "Trip persistence service is "
+            "temporarily unavailable."
+        ),
+    }
+
+
+def test_cors_allows_local_frontend() -> None:
+    client = build_client()
+
+    response = client.options(
+        "/trips",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.headers["access-control-allow-origin"]
+        == "http://localhost:3000"
+    )

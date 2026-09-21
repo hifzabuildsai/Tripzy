@@ -399,6 +399,39 @@ RULE 5:
 
 Never silently convert an ambiguous date into a complete date.
 
+--------------------------------------------------
+
+RULE 6:
+
+Extract only dates explicitly stated by the user.
+
+If the user provides a start date and a duration, DO NOT
+calculate, infer, or output an end_date.
+
+Example:
+
+User:
+Plan a 5-day trip starting September 10, 2027.
+
+Extract:
+
+{{
+    "start_date": "2027-09-10",
+    "duration_days": 5
+}}
+
+Do NOT extract:
+
+{{
+    "end_date": "2027-09-15"
+}}
+
+Derived trip dates are owned by deterministic Python
+application logic.
+
+If the user explicitly provides an end date, it may be
+extracted normally.
+
 ==================================================
 FINAL RULE
 ==================================================

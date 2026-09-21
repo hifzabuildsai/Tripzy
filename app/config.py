@@ -1,68 +1,69 @@
 import os
 
+from agents import OpenAIChatCompletionsModel, set_tracing_disabled
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
-from agents import OpenAIChatCompletionsModel
-from agents import (
-    OpenAIChatCompletionsModel,
-    set_tracing_disabled,
-)
 
 load_dotenv()
+
+
+# ============================================================
+# APPLICATION
+# ============================================================
+
+APP_ENV = os.getenv("APP_ENV", "development")
+DEBUG = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
 
 
 # ============================================================
 # OPENAI AGENTS SDK
 # ============================================================
 
-# Tripzy currently uses Gemini for model inference.
+# Tripzy uses Gemini for model inference through its
+# OpenAI-compatible API endpoint.
 #
-# The OpenAI Agents SDK enables OpenAI trace exporting by
-# default. Because we are not using an OpenAI API key for
-# tracing, disable trace export globally.
-#
-# This does NOT disable:
-# - Gemini inference
-# - agents
-# - tools
-# - handoffs
-# - Tavily
-#
-# It only disables OpenAI trace collection/export.
+# OpenAI trace exporting is disabled because Tripzy does not
+# use an OpenAI API key for tracing.
 
 set_tracing_disabled(True)
 
 
-# -------------------------
-# Gemini
-# -------------------------
+# ============================================================
+# GEMINI
+# ============================================================
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY is not set")
-
-GEMINI_MODEL = os.getenv(
-    "GEMINI_MODEL",
-    "gemini-3.5-flash-lite",
+gemini_client = (
+    AsyncOpenAI(
+        api_key=GEMINI_API_KEY,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+    if GEMINI_API_KEY
+    else None
 )
 
-gemini_client = AsyncOpenAI(
-    api_key=GEMINI_API_KEY,
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+gemini_model = (
+    OpenAIChatCompletionsModel(
+        model=GEMINI_MODEL,
+        openai_client=gemini_client,
+    )
+    if gemini_client
+    else None
 )
 
-gemini_model = OpenAIChatCompletionsModel(
-    model=GEMINI_MODEL,
-    openai_client=gemini_client,
-)
 
-
-# -------------------------
-# Tavily
-# -------------------------
+# ============================================================
+# TAVILY
+# ============================================================
 
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
-if not TAVILY_API_KEY:
-    raise ValueError("TAVILY_API_KEY is not set")
+
+# ============================================================
+# SUPABASE
+# ============================================================
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")

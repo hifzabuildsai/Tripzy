@@ -4,7 +4,10 @@ from dotenv import load_dotenv
 from supabase import Client, create_client
 
 from app.models.state import TripState
-from app.services.trip_repository import TripRepository
+from app.services.trip_repository import (
+    TripRepository,
+    TripRepositoryError,
+)
 
 
 load_dotenv()
@@ -43,10 +46,15 @@ class SupabaseTripRepository(TripRepository):
                 "SUPABASE_KEY is not set."
             )
 
-        self.client = create_client(
-            supabase_url,
-            supabase_key,
-        )
+        try:
+            self.client = create_client(
+                supabase_url,
+                supabase_key,
+            )
+        except Exception as exc:
+            raise TripRepositoryError(
+                "Failed to initialize Supabase persistence."
+            ) from exc
 
     def create(
         self,
@@ -57,16 +65,21 @@ class SupabaseTripRepository(TripRepository):
         Persist a newly created trip.
         """
 
-        self.client.table(
-            "trips"
-        ).insert(
-            {
-                "id": trip_id,
-                "state": state.model_dump(
-                    mode="json"
-                ),
-            }
-        ).execute()
+        try:
+            self.client.table(
+                "trips"
+            ).insert(
+                {
+                    "id": trip_id,
+                    "state": state.model_dump(
+                        mode="json"
+                    ),
+                }
+            ).execute()
+        except Exception as exc:
+            raise TripRepositoryError(
+                "Failed to create trip."
+            ) from exc
 
     def get(
         self,
@@ -76,13 +89,18 @@ class SupabaseTripRepository(TripRepository):
         Load and validate persisted TripState.
         """
 
-        response = (
-            self.client.table("trips")
-            .select("state")
-            .eq("id", trip_id)
-            .limit(1)
-            .execute()
-        )
+        try:
+            response = (
+                self.client.table("trips")
+                .select("state")
+                .eq("id", trip_id)
+                .limit(1)
+                .execute()
+            )
+        except Exception as exc:
+            raise TripRepositoryError(
+                "Failed to load trip."
+            ) from exc
 
         if not response.data:
             return None
@@ -100,18 +118,23 @@ class SupabaseTripRepository(TripRepository):
         Persist the latest TripState.
         """
 
-        self.client.table(
-            "trips"
-        ).update(
-            {
-                "state": state.model_dump(
-                    mode="json"
-                ),
-            }
-        ).eq(
-            "id",
-            trip_id,
-        ).execute()
+        try:
+            self.client.table(
+                "trips"
+            ).update(
+                {
+                    "state": state.model_dump(
+                        mode="json"
+                    ),
+                }
+            ).eq(
+                "id",
+                trip_id,
+            ).execute()
+        except Exception as exc:
+            raise TripRepositoryError(
+                "Failed to save trip."
+            ) from exc
 
     def exists(
         self,
@@ -121,12 +144,17 @@ class SupabaseTripRepository(TripRepository):
         Report whether the trip exists.
         """
 
-        response = (
-            self.client.table("trips")
-            .select("id")
-            .eq("id", trip_id)
-            .limit(1)
-            .execute()
-        )
+        try:
+            response = (
+                self.client.table("trips")
+                .select("id")
+                .eq("id", trip_id)
+                .limit(1)
+                .execute()
+            )
+        except Exception as exc:
+            raise TripRepositoryError(
+                "Failed to check trip existence."
+            ) from exc
 
         return bool(response.data)

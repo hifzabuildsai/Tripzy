@@ -1,15 +1,23 @@
 [project]
 name = "tripzy"
 version = "0.1.0"
-description = "Tripzy application"
-readme = "README.md"
+description = "Agentic AI travel planning application"
 requires-python = ">=3.11"
-dependencies = []
+
+dependencies = [
+    "fastapi>=0.141,<1.0",
+    "openai>=3.3,<4.0",
+    "openai-agents>=0.22,<1.0",
+    "pydantic>=2.13,<3.0",
+    "python-dotenv>=1.2,<2.0",
+    "supabase>=2.31,<3.0",
+    "tavily-python>=0.7,<1.0",
+    "uvicorn[standard]>=0.52,<1.0",
+]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
-    "pytest-cov>=5.0",
+    "pytest>=9.1,<10.0",
 ]
 
 [build-system]

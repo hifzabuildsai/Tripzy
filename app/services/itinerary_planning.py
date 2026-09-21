@@ -33,6 +33,15 @@ class ItineraryPlannerService:
         "free time",
     }
 
+    GENERIC_TITLES = {
+        "accommodation check-in",
+        "accommodation check-out",
+        "hotel check-in",
+        "hotel check-out",
+        "check-in",
+        "check-out",
+    }
+
     PROHIBITED_FLIGHT_TITLES = {
         "flight arrival",
         "flight departure",
@@ -523,7 +532,10 @@ Use planning_notes for important assumptions and limitations.
                     else None
                 )
 
-                if category in cls.GENERIC_CATEGORIES:
+                if (
+                    category in cls.GENERIC_CATEGORIES
+                    or normalized_title in cls.GENERIC_TITLES
+                ):
                     continue
 
                 if (

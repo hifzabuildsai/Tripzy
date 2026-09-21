@@ -1,5 +1,7 @@
+import os
+
 from fastapi import FastAPI, HTTPException
-from postgrest.exceptions import APIError
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.models.api import (
     CreateTripResponse,
@@ -8,6 +10,25 @@ from app.models.api import (
     TripStateResponse,
 )
 from app.services.session_registry import SessionRegistry
+from app.services.trip_repository import TripRepositoryError
+
+
+def get_cors_origins() -> list[str]:
+    """
+    Return the frontend origins allowed to call
+    the Tripzy API from a browser.
+    """
+
+    configured_origins = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    )
+
+    return [
+        origin.strip()
+        for origin in configured_origins.split(",")
+        if origin.strip()
+    ]
 
 
 app = FastAPI(
@@ -17,6 +38,15 @@ app = FastAPI(
         "planning system."
     ),
     version="0.1.0",
+)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_cors_origins(),
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 
@@ -75,7 +105,7 @@ async def create_trip() -> CreateTripResponse:
             ),
         )
 
-    except APIError as exc:
+    except TripRepositoryError as exc:
         raise HTTPException(
             status_code=503,
             detail=(
@@ -129,7 +159,7 @@ async def send_trip_message(
     except HTTPException:
         raise
 
-    except APIError as exc:
+    except TripRepositoryError as exc:
         raise HTTPException(
             status_code=503,
             detail=(
@@ -170,7 +200,7 @@ async def get_trip(
     except HTTPException:
         raise
 
-    except APIError as exc:
+    except TripRepositoryError as exc:
         raise HTTPException(
             status_code=503,
             detail=(

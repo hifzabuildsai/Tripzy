@@ -3,6 +3,13 @@ from abc import ABC, abstractmethod
 from app.models.state import TripState
 
 
+class TripRepositoryError(Exception):
+    """
+    Raised when the trip persistence layer cannot
+    complete a repository operation.
+    """
+
+
 class TripRepository(ABC):
     """
     Persistence boundary for Tripzy trip state.
