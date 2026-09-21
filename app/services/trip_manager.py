@@ -1,5 +1,9 @@
 from typing import Any
 
+from app.models.flight import (
+    FlightOption,
+    FlightResearch,
+)
 from app.models.research import DestinationResearch
 from app.models.state import TripState
 
@@ -10,7 +14,7 @@ class TripManager:
 
     The TripManager is deterministic.
 
-    Agents interpret user language.
+    Agents interpret and research information.
     TripManager owns application truth and workflow state.
     """
 
@@ -228,6 +232,35 @@ class TripManager:
         )
 
     # ---------------------------------------------------------
+    # FLIGHT RESEARCH
+    # ---------------------------------------------------------
+
+    def set_flight_research(
+        self,
+        research: FlightResearch,
+    ) -> None:
+        """
+        Store validated flight options in TripState.
+
+        FlightResearch itself is the research envelope.
+        TripState currently owns the actual options list.
+        """
+
+        self.state.flight_options = list(
+            research.options
+        )
+
+        self.state.status = (
+            "flights_researched"
+        )
+
+    def get_flight_options(
+        self,
+    ) -> list[FlightOption]:
+
+        return self.state.flight_options
+
+    # ---------------------------------------------------------
     # PROGRESS
     # ---------------------------------------------------------
 
@@ -255,5 +288,11 @@ class TripManager:
             "has_destination_research": (
                 self.state.destination_research
                 is not None
+            ),
+
+            "flight_options_count": (
+                len(
+                    self.state.flight_options
+                )
             ),
         }

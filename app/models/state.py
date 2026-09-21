@@ -2,6 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.models.flight import FlightOption
 from app.models.research import DestinationResearch
 from app.models.trip import TripRequest
 
@@ -24,7 +25,7 @@ class TripState(BaseModel):
         DestinationResearch | None
     ) = None
 
-    flight_options: list[dict[str, Any]] = Field(
+    flight_options: list[FlightOption] = Field(
         default_factory=list
     )
 

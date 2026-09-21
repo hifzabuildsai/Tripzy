@@ -4,7 +4,9 @@ from datetime import date, datetime
 from agents import Runner
 
 from app.agents.trip_planner import trip_planner
+from app.models.flight import FlightResearch
 from app.models.research import DestinationResearch
+from app.services.flight_research import FlightResearchService
 from app.services.research import ResearchService
 from app.services.trip_manager import TripManager
 
@@ -12,19 +14,6 @@ from app.services.trip_manager import TripManager
 class ConversationService:
     """
     Main application-level conversation coordinator.
-
-    Responsibilities:
-
-    1. Receive user messages.
-    2. Ask Tripzy to extract travel information.
-    3. Update TripManager.
-    4. Resolve date-year follow-ups deterministically.
-    5. Ask missing questions.
-    6. Automatically start destination research.
-    7. Store destination research as structured application data.
-    8. Prevent completed workflows from re-running tools.
-
-    Architecture rule:
 
     LLMs interpret and research.
 
@@ -39,6 +28,7 @@ class ConversationService:
     def __init__(self):
         self.trip_manager = TripManager()
         self.research_service = ResearchService()
+        self.flight_research_service = FlightResearchService()
         self.last_question: str | None = None
 
     async def process_message(
@@ -51,21 +41,13 @@ class ConversationService:
         if not user_message:
             return self._get_next_question()
 
-        # -----------------------------------------------------
-        # COMPLETED DESTINATION RESEARCH
-        # -----------------------------------------------------
-
         if (
             self.trip_manager.get_status()
-            == "destination_researched"
+            == "flights_researched"
         ):
-            return self._handle_post_research_message(
+            return self._handle_completed_research_message(
                 user_message
             )
-
-        # -----------------------------------------------------
-        # CURRENT APPLICATION STATE
-        # -----------------------------------------------------
 
         current_state = self.trip_manager.get_state()
 
@@ -88,15 +70,10 @@ class ConversationService:
         # MISSING DATE YEAR
         # -----------------------------------------------------
 
-        if (
-            next_missing_field
-            == "start_date_year"
-        ):
+        if next_missing_field == "start_date_year":
 
-            resolved = (
-                self._resolve_start_date_year(
-                    user_message=user_message,
-                )
+            resolved = self._resolve_start_date_year(
+                user_message=user_message,
             )
 
             if resolved:
@@ -118,9 +95,7 @@ class ConversationService:
                     start_date=resolved,
                 )
 
-                return (
-                    await self._continue_workflow()
-                )
+                return await self._continue_workflow()
 
         # -----------------------------------------------------
         # NORMAL LLM EXTRACTION
@@ -220,7 +195,7 @@ Never invent missing information.
 Never overwrite existing information unless the user explicitly
 corrects it.
 
-Do not perform destination research yourself.
+Do not perform destination or flight research yourself.
 
 Do not ask the user a question.
 
@@ -319,12 +294,6 @@ Extract:
     "start_date_text": "September 10"
 }}
 
-NOT:
-
-{{
-    "start_date": "{today.year}-09-10"
-}}
-
 --------------------------------------------------
 
 RULE 3:
@@ -354,32 +323,11 @@ Today is:
 
 {today.isoformat()}
 
-Example:
-
-User:
-tomorrow
-
-You may calculate the correct ISO date relative to today.
-
 --------------------------------------------------
 
 RULE 5:
 
 Never silently convert an ambiguous date into a complete date.
-
-Calendar date without year:
-
-September 10
-
-means:
-
-start_date_text = "September 10"
-
-It does NOT mean:
-
-{today.year}-09-10
-
-and it does NOT automatically mean next year.
 
 ==================================================
 FINAL RULE
@@ -395,8 +343,7 @@ EXTRACT EXPLICIT INFORMATION
     ↓
 extract_trip_request()
 
-Python application logic decides whether enough information
-exists to continue.
+Python application logic decides what happens next.
 """
 
         result = await Runner.run(
@@ -448,39 +395,40 @@ exists to continue.
 
             return next_question
 
+        request = (
+            self.trip_manager
+            .get_state()
+            .request
+        )
+
+        status = (
+            self.trip_manager
+            .get_status()
+        )
+
         # -----------------------------------------------------
-        # START DESTINATION RESEARCH
+        # DESTINATION RESEARCH
         # -----------------------------------------------------
 
-        if (
-            self.trip_manager.get_status()
-            == "collecting"
-        ):
+        if status == "collecting":
 
             self.trip_manager.set_status(
                 "researching_destination"
-            )
-
-            destination = (
-                self.trip_manager
-                .get_state()
-                .request
-                .destination
             )
 
             print(
                 "\n🔎 STARTING DESTINATION RESEARCH"
             )
 
-            research = (
+            destination_research = (
                 await self.research_service
                 .research_destination(
-                    destination
+                    request.destination
                 )
             )
 
             self.trip_manager.set_destination_research(
-                research
+                destination_research
             )
 
             print(
@@ -488,7 +436,7 @@ exists to continue.
             )
 
             print(
-                research.model_dump_json(
+                destination_research.model_dump_json(
                     indent=2
                 )
             )
@@ -497,22 +445,72 @@ exists to continue.
                 "\n✅ DESTINATION RESEARCH COMPLETE"
             )
 
-            return self._build_research_response(
-                research
+            status = (
+                self.trip_manager
+                .get_status()
             )
 
         # -----------------------------------------------------
-        # RESEARCH ALREADY EXISTS
+        # FLIGHT RESEARCH
         # -----------------------------------------------------
 
-        research = (
-            self.trip_manager
-            .get_destination_research()
-        )
+        if status == "destination_researched":
 
-        if research:
-            return self._build_research_response(
-                research
+            self.trip_manager.set_status(
+                "researching_flights"
+            )
+
+            print(
+                "\n✈️ STARTING FLIGHT RESEARCH"
+            )
+
+            flight_research = (
+                await self.flight_research_service
+                .research_flights(
+                    origin=request.origin,
+                    destination=request.destination,
+                    departure_date=request.start_date,
+                )
+            )
+
+            self.trip_manager.set_flight_research(
+                flight_research
+            )
+
+            print(
+                "\n📦 STRUCTURED FLIGHT RESEARCH"
+            )
+
+            print(
+                flight_research.model_dump_json(
+                    indent=2
+                )
+            )
+
+            print(
+                "\n✅ FLIGHT RESEARCH COMPLETE"
+            )
+
+            return self._build_combined_response(
+                destination_research=(
+                    self.trip_manager
+                    .get_destination_research()
+                ),
+                flight_research=flight_research,
+            )
+
+        # -----------------------------------------------------
+        # ALREADY COMPLETE
+        # -----------------------------------------------------
+
+        if status == "flights_researched":
+
+            return self._build_combined_response(
+                destination_research=(
+                    self.trip_manager
+                    .get_destination_research()
+                ),
+                flight_research=self._build_flight_research_from_state(),
             )
 
         return (
@@ -520,10 +518,10 @@ exists to continue.
         )
 
     # ---------------------------------------------------------
-    # POST-RESEARCH CONVERSATION
+    # COMPLETED WORKFLOW
     # ---------------------------------------------------------
 
-    def _handle_post_research_message(
+    def _handle_completed_research_message(
         self,
         user_message: str,
     ) -> str:
@@ -546,15 +544,15 @@ exists to continue.
         if normalized in gratitude_messages:
 
             return (
-                "You're welcome! Your destination research "
-                "is ready. Next, we can build the rest of "
-                "your trip plan."
+                "You're welcome! Your destination and flight "
+                "research are ready. Next, we can research "
+                "hotels for your trip."
             )
 
         return (
-            "Your destination research is already complete. "
-            "The next Tripzy milestone will use it to build "
-            "the rest of your trip plan."
+            "Your destination and flight research are already "
+            "complete. The next Tripzy milestone will use this "
+            "state to research hotels."
         )
 
     # ---------------------------------------------------------
@@ -572,9 +570,7 @@ exists to continue.
             .request
         )
 
-        date_text = (
-            request.start_date_text
-        )
+        date_text = request.start_date_text
 
         if not date_text:
             return None
@@ -770,32 +766,20 @@ exists to continue.
         )
 
     # ---------------------------------------------------------
-    # RESEARCH PRESENTATION
+    # PRESENTATION
     # ---------------------------------------------------------
 
     @staticmethod
-    def _build_research_response(
+    def _build_destination_section(
         research: DestinationResearch,
-    ) -> str:
-        """
-        Convert structured application data into a readable
-        CLI response.
-
-        Important:
-
-        DestinationResearch remains structured inside TripState.
-        This method is presentation-only.
-        """
+    ) -> list[str]:
 
         sections = [
-            "✈️ Your trip details are complete.",
-            "",
-            f"# Destination Research: {research.destination}",
+            (
+                "# Destination Research: "
+                f"{research.destination}"
+            ),
         ]
-
-        # -----------------------------------------------------
-        # ATTRACTIONS
-        # -----------------------------------------------------
 
         if research.attractions:
 
@@ -815,10 +799,6 @@ exists to continue.
                     )
                 )
 
-        # -----------------------------------------------------
-        # NEIGHBORHOODS
-        # -----------------------------------------------------
-
         if research.neighborhoods:
 
             sections.extend(
@@ -837,10 +817,6 @@ exists to continue.
                     )
                 )
 
-        # -----------------------------------------------------
-        # TRANSPORTATION
-        # -----------------------------------------------------
-
         if research.transportation:
 
             sections.extend(
@@ -851,14 +827,9 @@ exists to continue.
             )
 
             for item in research.transportation:
-
                 sections.append(
                     f"- {item}"
                 )
-
-        # -----------------------------------------------------
-        # PRACTICAL TIPS
-        # -----------------------------------------------------
 
         if research.practical_tips:
 
@@ -870,14 +841,9 @@ exists to continue.
             )
 
             for item in research.practical_tips:
-
                 sections.append(
                     f"- {item}"
                 )
-
-        # -----------------------------------------------------
-        # LOCAL INFORMATION
-        # -----------------------------------------------------
 
         if research.local_information:
 
@@ -889,42 +855,207 @@ exists to continue.
             )
 
             for item in research.local_information:
-
                 sections.append(
                     f"- {item}"
                 )
 
-        # -----------------------------------------------------
-        # SOURCES
-        # -----------------------------------------------------
+        return sections
 
-        if research.sources:
+    @staticmethod
+    def _build_flight_section(
+        research: FlightResearch,
+    ) -> list[str]:
+
+        sections = [
+            "",
+            (
+                "# Flight Research: "
+                f"{research.origin} → "
+                f"{research.destination}"
+            ),
+            "",
+            (
+                "Departure date: "
+                f"{research.departure_date}"
+            ),
+        ]
+
+        if not research.options:
 
             sections.extend(
                 [
                     "",
-                    "## Sources",
+                    (
+                        "No sufficiently supported structured "
+                        "flight options were found."
+                    ),
                 ]
             )
 
-            for source in research.sources:
+        for index, option in enumerate(
+            research.options,
+            start=1,
+        ):
+
+            sections.extend(
+                [
+                    "",
+                    f"## Flight Option {index}",
+                ]
+            )
+
+            if option.airline:
+                sections.append(
+                    f"- Airline: {option.airline}"
+                )
+
+            sections.append(
+                (
+                    f"- Route: {option.origin} → "
+                    f"{option.destination}"
+                )
+            )
+
+            if option.departure_time:
+                sections.append(
+                    (
+                        "- Departure: "
+                        f"{option.departure_time}"
+                    )
+                )
+
+            if option.arrival_time:
+                sections.append(
+                    (
+                        "- Arrival: "
+                        f"{option.arrival_time}"
+                    )
+                )
+
+            if option.duration:
+                sections.append(
+                    (
+                        "- Duration: "
+                        f"{option.duration}"
+                    )
+                )
+
+            if option.stops is not None:
+                sections.append(
+                    f"- Stops: {option.stops}"
+                )
+
+            if option.price is not None:
+
+                price = (
+                    f"{option.price:,.2f}"
+                )
+
+                if option.currency:
+                    price = (
+                        f"{option.currency} {price}"
+                    )
 
                 sections.append(
-                    f"- {source.title}: {source.url}"
+                    f"- Researched price: {price}"
+                )
+
+            if option.source:
+
+                sections.append(
+                    (
+                        "- Source: "
+                        f"{option.source.title} "
+                        f"({option.source.url})"
+                    )
+                )
+
+        if research.notes:
+
+            sections.extend(
+                [
+                    "",
+                    "## Flight Research Notes",
+                ]
+            )
+
+            for note in research.notes:
+                sections.append(
+                    f"- {note}"
                 )
 
         sections.extend(
             [
                 "",
                 (
-                    "Next, we'll use this structured research "
-                    "to build the rest of your trip plan."
+                    "Flight information above is research data, "
+                    "not confirmed live booking availability."
+                ),
+            ]
+        )
+
+        return sections
+
+    def _build_combined_response(
+        self,
+        destination_research: (
+            DestinationResearch | None
+        ),
+        flight_research: FlightResearch,
+    ) -> str:
+
+        sections = [
+            "✈️ Your initial trip research is complete.",
+            "",
+        ]
+
+        if destination_research:
+
+            sections.extend(
+                self._build_destination_section(
+                    destination_research
+                )
+            )
+
+        sections.extend(
+            self._build_flight_section(
+                flight_research
+            )
+        )
+
+        sections.extend(
+            [
+                "",
+                (
+                    "Next, Tripzy can use this state to "
+                    "research hotels."
                 ),
             ]
         )
 
         return "\n".join(
             sections
+        )
+
+    def _build_flight_research_from_state(
+        self,
+    ) -> FlightResearch:
+
+        request = (
+            self.trip_manager
+            .get_state()
+            .request
+        )
+
+        return FlightResearch(
+            origin=request.origin,
+            destination=request.destination,
+            departure_date=request.start_date,
+            options=(
+                self.trip_manager
+                .get_flight_options()
+            ),
+            notes=[],
         )
 
     # ---------------------------------------------------------
