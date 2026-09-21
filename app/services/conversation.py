@@ -4,9 +4,11 @@ from datetime import date, datetime
 from agents import Runner
 
 from app.agents.trip_planner import trip_planner
+from app.models.activity import ActivityResearch
 from app.models.flight import FlightResearch
 from app.models.hotel import HotelResearch
 from app.models.research import DestinationResearch
+from app.services.activity_research import ActivityResearchService
 from app.services.flight_research import FlightResearchService
 from app.services.hotel_research import HotelResearchService
 from app.services.research import ResearchService
@@ -29,9 +31,21 @@ class ConversationService:
 
     def __init__(self):
         self.trip_manager = TripManager()
+
         self.research_service = ResearchService()
-        self.flight_research_service = FlightResearchService()
-        self.hotel_research_service = HotelResearchService()
+
+        self.flight_research_service = (
+            FlightResearchService()
+        )
+
+        self.hotel_research_service = (
+            HotelResearchService()
+        )
+
+        self.activity_research_service = (
+            ActivityResearchService()
+        )
+
         self.last_question: str | None = None
 
     async def process_message(
@@ -46,13 +60,17 @@ class ConversationService:
 
         if (
             self.trip_manager.get_status()
-            == "hotels_researched"
+            == "activities_researched"
         ):
-            return self._handle_completed_research_message(
-                user_message
+            return (
+                self._handle_completed_research_message(
+                    user_message
+                )
             )
 
-        current_state = self.trip_manager.get_state()
+        current_state = (
+            self.trip_manager.get_state()
+        )
 
         current_request = (
             current_state.request.model_dump()
@@ -198,7 +216,24 @@ Never invent missing information.
 Never overwrite existing information unless the user explicitly
 corrects it.
 
-Do not perform destination, flight, or hotel research yourself.
+If the user explicitly mentions travel interests, extract them.
+
+Examples of interests include:
+
+- history
+- food
+- museums
+- architecture
+- nature
+- shopping
+- culture
+- nightlife
+- photography
+
+Do not invent interests that the user did not provide.
+
+Do not perform destination, flight, hotel, or activity research
+yourself.
 
 Do not ask the user a question.
 
@@ -255,6 +290,22 @@ Extract:
 {{
     "budget": 2000,
     "currency": "USD"
+}}
+
+--------------------------------------------------
+
+If the user explicitly provides interests:
+
+User:
+I'm interested in history and food.
+
+Extract:
+
+{{
+    "interests": [
+        "history",
+        "food"
+    ]
 }}
 
 ==================================================
@@ -538,22 +589,82 @@ Python application logic decides what happens next.
                 "\n✅ HOTEL RESEARCH COMPLETE"
             )
 
+            status = (
+                self.trip_manager
+                .get_status()
+            )
+
+        # -----------------------------------------------------
+        # ACTIVITY RESEARCH
+        # -----------------------------------------------------
+
+        if status == "hotels_researched":
+
+            destination_research = (
+                self.trip_manager
+                .get_destination_research()
+            )
+
+            if destination_research is None:
+                return (
+                    "Tripzy cannot start activity research "
+                    "because destination research is missing."
+                )
+
+            self.trip_manager.set_status(
+                "researching_activities"
+            )
+
+            print(
+                "\n🎯 STARTING ACTIVITY RESEARCH"
+            )
+
+            activity_research = (
+                await self.activity_research_service
+                .research_activities(
+                    request=request,
+                    destination_research=(
+                        destination_research
+                    ),
+                )
+            )
+
+            self.trip_manager.set_activity_research(
+                activity_research
+            )
+
+            print(
+                "\n📦 STRUCTURED ACTIVITY RESEARCH"
+            )
+
+            print(
+                activity_research.model_dump_json(
+                    indent=2
+                )
+            )
+
+            print(
+                "\n✅ ACTIVITY RESEARCH COMPLETE"
+            )
+
             return self._build_combined_response(
                 destination_research=(
-                    self.trip_manager
-                    .get_destination_research()
+                    destination_research
                 ),
                 flight_research=(
                     self._build_flight_research_from_state()
                 ),
-                hotel_research=hotel_research,
+                hotel_research=(
+                    self._build_hotel_research_from_state()
+                ),
+                activity_research=activity_research,
             )
 
         # -----------------------------------------------------
         # ALREADY COMPLETE
         # -----------------------------------------------------
 
-        if status == "hotels_researched":
+        if status == "activities_researched":
 
             return self._build_combined_response(
                 destination_research=(
@@ -565,6 +676,9 @@ Python application logic decides what happens next.
                 ),
                 hotel_research=(
                     self._build_hotel_research_from_state()
+                ),
+                activity_research=(
+                    self._build_activity_research_from_state()
                 ),
             )
 
@@ -600,14 +714,16 @@ Python application logic decides what happens next.
 
             return (
                 "You're welcome! Your destination, flight, "
-                "and hotel research are ready. Next, Tripzy "
-                "can research activities and places."
+                "hotel, and activity research are ready. "
+                "Next, Tripzy can build a structured "
+                "day-by-day itinerary."
             )
 
         return (
-            "Your destination, flight, and hotel research are "
-            "already complete. The next Tripzy milestone will "
-            "use this state to research activities and places."
+            "Your destination, flight, hotel, and activity "
+            "research are already complete. The next Tripzy "
+            "milestone will use this state to build the "
+            "itinerary."
         )
 
     # ---------------------------------------------------------
@@ -821,7 +937,7 @@ Python application logic decides what happens next.
         )
 
     # ---------------------------------------------------------
-    # PRESENTATION
+    # DESTINATION PRESENTATION
     # ---------------------------------------------------------
 
     @staticmethod
@@ -915,6 +1031,10 @@ Python application logic decides what happens next.
                 )
 
         return sections
+
+    # ---------------------------------------------------------
+    # FLIGHT PRESENTATION
+    # ---------------------------------------------------------
 
     @staticmethod
     def _build_flight_section(
@@ -1050,6 +1170,10 @@ Python application logic decides what happens next.
         )
 
         return sections
+
+    # ---------------------------------------------------------
+    # HOTEL PRESENTATION
+    # ---------------------------------------------------------
 
     @staticmethod
     def _build_hotel_section(
@@ -1187,6 +1311,139 @@ Python application logic decides what happens next.
 
         return sections
 
+    # ---------------------------------------------------------
+    # ACTIVITY PRESENTATION
+    # ---------------------------------------------------------
+
+    @staticmethod
+    def _build_activity_section(
+        research: ActivityResearch,
+    ) -> list[str]:
+
+        sections = [
+            "",
+            (
+                "# Activities & Places: "
+                f"{research.destination}"
+            ),
+        ]
+
+        if not research.options:
+
+            sections.extend(
+                [
+                    "",
+                    (
+                        "No sufficiently supported structured "
+                        "activity options were found."
+                    ),
+                ]
+            )
+
+        for index, option in enumerate(
+            research.options,
+            start=1,
+        ):
+
+            sections.extend(
+                [
+                    "",
+                    f"## Activity Option {index}",
+                    f"- Name: {option.name}",
+                ]
+            )
+
+            if option.category:
+                sections.append(
+                    (
+                        "- Category: "
+                        f"{option.category}"
+                    )
+                )
+
+            if option.neighborhood:
+                sections.append(
+                    (
+                        "- Neighborhood: "
+                        f"{option.neighborhood}"
+                    )
+                )
+
+            if option.description:
+                sections.append(
+                    (
+                        "- Description: "
+                        f"{option.description}"
+                    )
+                )
+
+            if option.estimated_duration:
+                sections.append(
+                    (
+                        "- Estimated duration: "
+                        f"{option.estimated_duration}"
+                    )
+                )
+
+            if option.price is not None:
+
+                price = (
+                    f"{option.price:,.2f}"
+                )
+
+                if option.currency:
+                    price = (
+                        f"{option.currency} {price}"
+                    )
+
+                sections.append(
+                    (
+                        "- Researched price: "
+                        f"{price}"
+                    )
+                )
+
+            if option.source:
+                sections.append(
+                    (
+                        "- Source: "
+                        f"{option.source.title} "
+                        f"({option.source.url})"
+                    )
+                )
+
+        if research.notes:
+
+            sections.extend(
+                [
+                    "",
+                    "## Activity Research Notes",
+                ]
+            )
+
+            for note in research.notes:
+                sections.append(
+                    f"- {note}"
+                )
+
+        sections.extend(
+            [
+                "",
+                (
+                    "Activity information above is research "
+                    "data, not confirmed live ticket "
+                    "availability, opening status, or "
+                    "guaranteed pricing."
+                ),
+            ]
+        )
+
+        return sections
+
+    # ---------------------------------------------------------
+    # COMBINED PRESENTATION
+    # ---------------------------------------------------------
+
     def _build_combined_response(
         self,
         destination_research: (
@@ -1194,10 +1451,14 @@ Python application logic decides what happens next.
         ),
         flight_research: FlightResearch,
         hotel_research: HotelResearch,
+        activity_research: ActivityResearch,
     ) -> str:
 
         sections = [
-            "✈️ Your initial trip research is complete.",
+            (
+                "✈️ Your initial trip research is "
+                "complete."
+            ),
             "",
         ]
 
@@ -1222,11 +1483,18 @@ Python application logic decides what happens next.
         )
 
         sections.extend(
+            self._build_activity_section(
+                activity_research
+            )
+        )
+
+        sections.extend(
             [
                 "",
                 (
-                    "Next, Tripzy can use this state to "
-                    "research activities and places."
+                    "Next, Tripzy can use this structured "
+                    "research to build a day-by-day "
+                    "itinerary."
                 ),
             ]
         )
@@ -1287,6 +1555,25 @@ Python application logic decides what happens next.
             options=(
                 self.trip_manager
                 .get_hotel_options()
+            ),
+            notes=[],
+        )
+
+    def _build_activity_research_from_state(
+        self,
+    ) -> ActivityResearch:
+
+        request = (
+            self.trip_manager
+            .get_state()
+            .request
+        )
+
+        return ActivityResearch(
+            destination=request.destination,
+            options=(
+                self.trip_manager
+                .get_activity_options()
             ),
             notes=[],
         )

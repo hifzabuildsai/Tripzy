@@ -1,5 +1,9 @@
 from typing import Any
 
+from app.models.activity import (
+    ActivityOption,
+    ActivityResearch,
+)
 from app.models.flight import (
     FlightOption,
     FlightResearch,
@@ -260,12 +264,6 @@ class TripManager:
         self,
         research: HotelResearch,
     ) -> None:
-        """
-        Store validated hotel options in TripState.
-
-        HotelResearch is the research envelope.
-        TripState owns the structured HotelOption list.
-        """
 
         self.state.hotel_options = list(
             research.options
@@ -280,6 +278,35 @@ class TripManager:
     ) -> list[HotelOption]:
 
         return self.state.hotel_options
+
+    # ---------------------------------------------------------
+    # ACTIVITY RESEARCH
+    # ---------------------------------------------------------
+
+    def set_activity_research(
+        self,
+        research: ActivityResearch,
+    ) -> None:
+        """
+        Store validated activity options in TripState.
+
+        ActivityResearch is the research envelope.
+        TripState owns the structured ActivityOption list.
+        """
+
+        self.state.activity_options = list(
+            research.options
+        )
+
+        self.state.status = (
+            "activities_researched"
+        )
+
+    def get_activity_options(
+        self,
+    ) -> list[ActivityOption]:
+
+        return self.state.activity_options
 
     # ---------------------------------------------------------
     # PROGRESS
@@ -320,6 +347,12 @@ class TripManager:
             "hotel_options_count": (
                 len(
                     self.state.hotel_options
+                )
+            ),
+
+            "activity_options_count": (
+                len(
+                    self.state.activity_options
                 )
             ),
         }

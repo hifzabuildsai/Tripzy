@@ -1,7 +1,6 @@
-from typing import Any
-
 from pydantic import BaseModel, Field
 
+from app.models.activity import ActivityOption
 from app.models.flight import FlightOption
 from app.models.hotel import HotelOption
 from app.models.research import DestinationResearch
@@ -34,7 +33,7 @@ class TripState(BaseModel):
         default_factory=list
     )
 
-    activity_options: list[dict[str, Any]] = Field(
+    activity_options: list[ActivityOption] = Field(
         default_factory=list
     )
 
