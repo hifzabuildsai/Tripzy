@@ -25,10 +25,21 @@ class TripManager:
 
     Agents interpret, research, and plan information.
     TripManager owns application truth and workflow state.
+
+    TripManager can start with either:
+    - a fresh TripState
+    - an existing restored TripState
     """
 
-    def __init__(self):
-        self.state = TripState()
+    def __init__(
+        self,
+        state: TripState | None = None,
+    ):
+        self.state = (
+            state
+            if state is not None
+            else TripState()
+        )
 
     # ---------------------------------------------------------
     # STATE

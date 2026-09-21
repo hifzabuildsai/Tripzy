@@ -9,6 +9,7 @@ from app.models.flight import FlightResearch
 from app.models.hotel import HotelResearch
 from app.models.itinerary import Itinerary
 from app.models.research import DestinationResearch
+from app.models.state import TripState
 from app.services.activity_research import ActivityResearchService
 from app.services.flight_research import FlightResearchService
 from app.services.hotel_research import HotelResearchService
@@ -31,8 +32,13 @@ class ConversationService:
     - presentation formatting
     """
 
-    def __init__(self):
-        self.trip_manager = TripManager()
+    def __init__(
+        self,
+        state: TripState | None = None,
+   ):
+        self.trip_manager = TripManager(
+            state=state,
+        )
 
         self.research_service = ResearchService()
 
@@ -52,7 +58,11 @@ class ConversationService:
             ItineraryPlannerService()
         )
 
-        self.last_question: str | None = None
+        self.last_question: str | None = (
+            self.trip_manager.get_next_question()
+            if state is not None
+            else None
+        )
 
     async def process_message(
         self,
