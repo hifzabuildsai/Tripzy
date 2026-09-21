@@ -13,8 +13,26 @@ class HotelResearchService:
     """
     Runs hotel research for a completed Tripzy trip request.
 
-    Dates are derived deterministically in Python where
-    possible.
+    Tripzy MVP semantics:
+
+    duration_days represents the number of calendar trip days,
+    including the start date.
+
+    Example:
+
+    start_date = 2027-09-10
+    duration_days = 5
+
+    Trip dates:
+    2027-09-10
+    2027-09-11
+    2027-09-12
+    2027-09-13
+    2027-09-14
+
+    Therefore the derived trip/check-out date is 2027-09-14.
+
+    Explicit end_date always takes precedence.
 
     Web research is used for accommodation discovery, not
     confirmed live room availability.
@@ -53,6 +71,13 @@ Budget currency:
 {request.currency}
 
 IMPORTANT:
+
+The dates above are application-owned trip dates.
+
+Use them exactly.
+
+Do not reinterpret the trip duration or calculate different
+hotel dates.
 
 The budget above is the TOTAL TRIP BUDGET.
 
@@ -100,16 +125,41 @@ live booking price.
             output,
             HotelResearch,
         ):
-            return output
+            research = output
+        else:
+            research = HotelResearch.model_validate(
+                output
+            )
 
-        return HotelResearch.model_validate(
-            output
+        self._validate_research_dates(
+            research=research,
+            request=request,
+            expected_check_out_date=(
+                check_out_date
+            ),
         )
+
+        return research
 
     @staticmethod
     def _resolve_check_out_date(
         request: TripRequest,
     ) -> str | None:
+        """
+        Resolve the final calendar date of the trip.
+
+        Explicit end_date takes precedence.
+
+        Otherwise duration_days is interpreted as inclusive
+        calendar trip days.
+
+        Example:
+
+        start_date = 2027-09-10
+        duration_days = 5
+
+        result = 2027-09-14
+        """
 
         if request.end_date:
             return request.end_date
@@ -120,6 +170,9 @@ live booking price.
         ):
             return None
 
+        if request.duration_days <= 0:
+            return None
+
         try:
             check_in = date.fromisoformat(
                 request.start_date
@@ -128,7 +181,10 @@ live booking price.
             check_out = (
                 check_in
                 + timedelta(
-                    days=request.duration_days
+                    days=(
+                        request.duration_days
+                        - 1
+                    )
                 )
             )
 
@@ -136,3 +192,50 @@ live booking price.
 
         except ValueError:
             return None
+
+    @staticmethod
+    def _validate_research_dates(
+        research: HotelResearch,
+        request: TripRequest,
+        expected_check_out_date: str | None,
+    ) -> None:
+        """
+        Fail closed if the model changes application-owned
+        hotel research invariants.
+        """
+
+        if (
+            request.destination
+            and research.destination
+            != request.destination
+        ):
+            raise ValueError(
+                "Hotel researcher changed the destination."
+            )
+
+        if (
+            request.start_date
+            and research.check_in_date
+            != request.start_date
+        ):
+            raise ValueError(
+                "Hotel researcher changed the check-in date."
+            )
+
+        if (
+            research.check_out_date
+            != expected_check_out_date
+        ):
+            raise ValueError(
+                "Hotel researcher changed the application-"
+                "calculated check-out date."
+            )
+
+        if (
+            request.travelers
+            and research.travelers
+            != request.travelers
+        ):
+            raise ValueError(
+                "Hotel researcher changed the traveler count."
+            )

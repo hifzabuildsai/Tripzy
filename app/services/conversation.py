@@ -7,10 +7,12 @@ from app.agents.trip_planner import trip_planner
 from app.models.activity import ActivityResearch
 from app.models.flight import FlightResearch
 from app.models.hotel import HotelResearch
+from app.models.itinerary import Itinerary
 from app.models.research import DestinationResearch
 from app.services.activity_research import ActivityResearchService
 from app.services.flight_research import FlightResearchService
 from app.services.hotel_research import HotelResearchService
+from app.services.itinerary_planning import ItineraryPlannerService
 from app.services.research import ResearchService
 from app.services.trip_manager import TripManager
 
@@ -46,6 +48,10 @@ class ConversationService:
             ActivityResearchService()
         )
 
+        self.itinerary_planner_service = (
+            ItineraryPlannerService()
+        )
+
         self.last_question: str | None = None
 
     async def process_message(
@@ -60,7 +66,7 @@ class ConversationService:
 
         if (
             self.trip_manager.get_status()
-            == "activities_researched"
+            == "itinerary_planned"
         ):
             return (
                 self._handle_completed_research_message(
@@ -647,24 +653,49 @@ Python application logic decides what happens next.
                 "\n✅ ACTIVITY RESEARCH COMPLETE"
             )
 
-            return self._build_combined_response(
-                destination_research=(
-                    destination_research
-                ),
-                flight_research=(
-                    self._build_flight_research_from_state()
-                ),
-                hotel_research=(
-                    self._build_hotel_research_from_state()
-                ),
-                activity_research=activity_research,
+            status = (
+                self.trip_manager
+                .get_status()
             )
 
         # -----------------------------------------------------
-        # ALREADY COMPLETE
+        # ITINERARY PLANNING
         # -----------------------------------------------------
 
         if status == "activities_researched":
+
+            self.trip_manager.set_status(
+                "planning_itinerary"
+            )
+
+            print(
+                "\n🗓️ STARTING ITINERARY PLANNING"
+            )
+
+            itinerary = (
+                await self.itinerary_planner_service
+                .build_itinerary(
+                    self.trip_manager.get_state()
+                )
+            )
+
+            self.trip_manager.set_itinerary(
+                itinerary
+            )
+
+            print(
+                "\n📦 STRUCTURED ITINERARY"
+            )
+
+            print(
+                itinerary.model_dump_json(
+                    indent=2
+                )
+            )
+
+            print(
+                "\n✅ ITINERARY PLANNING COMPLETE"
+            )
 
             return self._build_combined_response(
                 destination_research=(
@@ -680,6 +711,41 @@ Python application logic decides what happens next.
                 activity_research=(
                     self._build_activity_research_from_state()
                 ),
+                itinerary=itinerary,
+            )
+
+        # -----------------------------------------------------
+        # ALREADY COMPLETE
+        # -----------------------------------------------------
+
+        if status == "itinerary_planned":
+
+            itinerary = (
+                self.trip_manager
+                .get_itinerary()
+            )
+
+            if itinerary is None:
+                return (
+                    "Tripzy cannot display the itinerary "
+                    "because itinerary state is missing."
+                )
+
+            return self._build_combined_response(
+                destination_research=(
+                    self.trip_manager
+                    .get_destination_research()
+                ),
+                flight_research=(
+                    self._build_flight_research_from_state()
+                ),
+                hotel_research=(
+                    self._build_hotel_research_from_state()
+                ),
+                activity_research=(
+                    self._build_activity_research_from_state()
+                ),
+                itinerary=itinerary,
             )
 
         return (
@@ -713,17 +779,13 @@ Python application logic decides what happens next.
         if normalized in gratitude_messages:
 
             return (
-                "You're welcome! Your destination, flight, "
-                "hotel, and activity research are ready. "
-                "Next, Tripzy can build a structured "
-                "day-by-day itinerary."
+                "You're welcome! Your Tripzy research and "
+                "structured day-by-day itinerary are ready."
             )
 
         return (
-            "Your destination, flight, hotel, and activity "
-            "research are already complete. The next Tripzy "
-            "milestone will use this state to build the "
-            "itinerary."
+            "Your trip research and structured itinerary are "
+            "already complete."
         )
 
     # ---------------------------------------------------------
@@ -1441,6 +1503,188 @@ Python application logic decides what happens next.
         return sections
 
     # ---------------------------------------------------------
+    # ITINERARY PRESENTATION
+    # ---------------------------------------------------------
+
+    @staticmethod
+    def _build_itinerary_section(
+        itinerary: Itinerary,
+    ) -> list[str]:
+
+        sections = [
+            "",
+            (
+                "# Day-by-Day Itinerary: "
+                f"{itinerary.destination}"
+            ),
+            "",
+            (
+                "Start date: "
+                f"{itinerary.start_date}"
+            ),
+            (
+                "Travelers: "
+                f"{itinerary.travelers}"
+            ),
+        ]
+
+        if itinerary.end_date:
+            sections.append(
+                (
+                    "End date: "
+                    f"{itinerary.end_date}"
+                )
+            )
+
+        for day in itinerary.days:
+
+            sections.extend(
+                [
+                    "",
+                    (
+                        f"## Day {day.day_number}"
+                        + (
+                            f" — {day.date}"
+                            if day.date
+                            else ""
+                        )
+                    ),
+                ]
+            )
+
+            if day.title:
+                sections.append(
+                    f"**{day.title}**"
+                )
+
+            if not day.items:
+                sections.append(
+                    "- No scheduled items."
+                )
+
+            for item in day.items:
+
+                time_parts = [
+                    value
+                    for value in (
+                        item.start_time,
+                        item.end_time,
+                    )
+                    if value
+                ]
+
+                if len(time_parts) == 2:
+                    time_label = (
+                        f"{time_parts[0]}–"
+                        f"{time_parts[1]}"
+                    )
+                elif time_parts:
+                    time_label = time_parts[0]
+                else:
+                    time_label = None
+
+                heading = (
+                    f"- **{item.title}**"
+                )
+
+                if time_label:
+                    heading += (
+                        f" ({time_label})"
+                    )
+
+                sections.append(
+                    heading
+                )
+
+                if item.category:
+                    sections.append(
+                        (
+                            "  - Category: "
+                            f"{item.category}"
+                        )
+                    )
+
+                if item.neighborhood:
+                    sections.append(
+                        (
+                            "  - Neighborhood: "
+                            f"{item.neighborhood}"
+                        )
+                    )
+
+                if item.description:
+                    sections.append(
+                        (
+                            "  - "
+                            f"{item.description}"
+                        )
+                    )
+
+                if item.estimated_duration:
+                    sections.append(
+                        (
+                            "  - Estimated duration: "
+                            f"{item.estimated_duration}"
+                        )
+                    )
+
+                if item.estimated_cost is not None:
+
+                    cost = (
+                        f"{item.estimated_cost:,.2f}"
+                    )
+
+                    if item.currency:
+                        cost = (
+                            f"{item.currency} {cost}"
+                        )
+
+                    sections.append(
+                        (
+                            "  - Researched cost: "
+                            f"{cost}"
+                        )
+                    )
+
+                for note in item.notes:
+                    sections.append(
+                        f"  - Note: {note}"
+                    )
+
+            for note in day.notes:
+                sections.append(
+                    f"- Day note: {note}"
+                )
+
+        if itinerary.planning_notes:
+
+            sections.extend(
+                [
+                    "",
+                    "## Itinerary Planning Notes",
+                ]
+            )
+
+            for note in itinerary.planning_notes:
+                sections.append(
+                    f"- {note}"
+                )
+
+        sections.extend(
+            [
+                "",
+                (
+                    "This itinerary is a planning recommendation "
+                    "based on Tripzy's researched data. It does "
+                    "not represent confirmed bookings, live "
+                    "availability, or guaranteed opening hours."
+                ),
+            ]
+        )
+
+        return sections
+
+    # ---------------------------------------------------------
     # COMBINED PRESENTATION
     # ---------------------------------------------------------
 
@@ -1452,6 +1696,7 @@ Python application logic decides what happens next.
         flight_research: FlightResearch,
         hotel_research: HotelResearch,
         activity_research: ActivityResearch,
+        itinerary: Itinerary,
     ) -> str:
 
         sections = [
@@ -1489,14 +1734,9 @@ Python application logic decides what happens next.
         )
 
         sections.extend(
-            [
-                "",
-                (
-                    "Next, Tripzy can use this structured "
-                    "research to build a day-by-day "
-                    "itinerary."
-                ),
-            ]
+            self._build_itinerary_section(
+                itinerary
+            )
         )
 
         return "\n".join(

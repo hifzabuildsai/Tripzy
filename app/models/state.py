@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from app.models.activity import ActivityOption
 from app.models.flight import FlightOption
 from app.models.hotel import HotelOption
+from app.models.itinerary import Itinerary
 from app.models.research import DestinationResearch
 from app.models.trip import TripRequest
 
@@ -13,8 +14,8 @@ class TripState(BaseModel):
 
     TripState is the source of truth for the application.
 
-    Agents can interpret and research information, but the
-    application owns and persists the actual state.
+    Agents can interpret, research, and plan information, but
+    the application owns and persists the actual state.
     """
 
     request: TripRequest = Field(
@@ -37,6 +38,6 @@ class TripState(BaseModel):
         default_factory=list
     )
 
-    itinerary: str | None = None
+    itinerary: Itinerary | None = None
 
     status: str = "collecting"

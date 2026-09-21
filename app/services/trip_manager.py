@@ -12,6 +12,7 @@ from app.models.hotel import (
     HotelOption,
     HotelResearch,
 )
+from app.models.itinerary import Itinerary
 from app.models.research import DestinationResearch
 from app.models.state import TripState
 
@@ -22,7 +23,7 @@ class TripManager:
 
     The TripManager is deterministic.
 
-    Agents interpret and research information.
+    Agents interpret, research, and plan information.
     TripManager owns application truth and workflow state.
     """
 
@@ -309,6 +310,33 @@ class TripManager:
         return self.state.activity_options
 
     # ---------------------------------------------------------
+    # ITINERARY
+    # ---------------------------------------------------------
+
+    def set_itinerary(
+        self,
+        itinerary: Itinerary,
+    ) -> None:
+        """
+        Store the validated structured itinerary.
+
+        The itinerary has already passed planner-service
+        invariant validation before reaching this method.
+        """
+
+        self.state.itinerary = itinerary
+
+        self.state.status = (
+            "itinerary_planned"
+        )
+
+    def get_itinerary(
+        self,
+    ) -> Itinerary | None:
+
+        return self.state.itinerary
+
+    # ---------------------------------------------------------
     # PROGRESS
     # ---------------------------------------------------------
 
@@ -354,5 +382,10 @@ class TripManager:
                 len(
                     self.state.activity_options
                 )
+            ),
+
+            "has_itinerary": (
+                self.state.itinerary
+                is not None
             ),
         }
