@@ -3,45 +3,44 @@ from agents import Runner
 from app.agents.destination_researcher import (
     destination_researcher,
 )
+from app.models.research import DestinationResearch
 
 
 class ResearchService:
     """
-    Handles destination research for a completed trip.
-
-    This service is responsible for calling the Destination
-    Researcher and returning its final research output.
+    Runs destination research and returns validated structured
+    application data.
     """
 
     async def research_destination(
         self,
         destination: str,
-    ) -> str:
-        """
-        Research a destination using the Destination Researcher.
-        """
+    ) -> DestinationResearch:
 
         prompt = f"""
-Research the destination:
+Research this travel destination:
 
 {destination}
 
-Use your available travel research tools.
+Use your available travel research tool.
 
-Find useful, current information for a traveler, including:
+Return structured destination research containing:
 
-- major attractions
-- important neighborhoods
+- destination
+- attractions
+- neighborhoods
 - transportation
-- practical travel considerations
-- useful local information
+- practical_tips
+- local_information
+- sources
 
-Keep the research concise and useful.
+Do not create an itinerary.
 
-Do not invent facts.
+Do not invent facts or source URLs.
 
-Return a structured research summary suitable for another
-travel-planning agent to consume.
+The destination field must represent:
+
+{destination}
 """
 
         result = await Runner.run(
@@ -49,4 +48,14 @@ travel-planning agent to consume.
             prompt,
         )
 
-        return result.final_output
+        output = result.final_output
+
+        if isinstance(
+            output,
+            DestinationResearch,
+        ):
+            return output
+
+        return DestinationResearch.model_validate(
+            output
+        )

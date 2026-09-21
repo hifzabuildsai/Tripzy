@@ -1,5 +1,6 @@
 from typing import Any
 
+from app.models.research import DestinationResearch
 from app.models.state import TripState
 
 
@@ -10,8 +11,7 @@ class TripManager:
     The TripManager is deterministic.
 
     Agents interpret user language.
-    TripManager decides whether the trip has enough valid
-    information to continue.
+    TripManager owns application truth and workflow state.
     """
 
     def __init__(self):
@@ -28,7 +28,10 @@ class TripManager:
     # REQUEST DATA
     # ---------------------------------------------------------
 
-    def update_request_fields(self, **fields: Any) -> None:
+    def update_request_fields(
+        self,
+        **fields: Any,
+    ) -> None:
 
         allowed_fields = {
             "origin",
@@ -55,65 +58,95 @@ class TripManager:
         if not valid_fields:
             return
 
-        current_data = self.state.request.model_dump()
+        current_data = (
+            self.state.request.model_dump()
+        )
 
-        current_data.update(valid_fields)
+        current_data.update(
+            valid_fields
+        )
 
         self.state.request = type(
             self.state.request
-        )(**current_data)
+        )(
+            **current_data
+        )
 
     # ---------------------------------------------------------
     # COMPLETENESS
     # ---------------------------------------------------------
 
-    def get_missing_information(self) -> list[str]:
+    def get_missing_information(
+        self,
+    ) -> list[str]:
 
         request = self.state.request
 
         missing = []
 
         if not request.origin:
-            missing.append("origin")
+            missing.append(
+                "origin"
+            )
 
         if not request.destination:
-            missing.append("destination")
+            missing.append(
+                "destination"
+            )
 
-        # A date expression such as "September 10" is NOT
-        # sufficient. We require a fully resolved date.
         if not request.start_date:
 
             if request.start_date_text:
-                missing.append("start_date_year")
+                missing.append(
+                    "start_date_year"
+                )
             else:
-                missing.append("start_date")
+                missing.append(
+                    "start_date"
+                )
 
         if (
             not request.end_date
             and not request.duration_days
         ):
-            missing.append("end_date_or_duration")
+            missing.append(
+                "end_date_or_duration"
+            )
 
         if not request.travelers:
-            missing.append("travelers")
+            missing.append(
+                "travelers"
+            )
 
         if request.budget is None:
-            missing.append("budget")
+            missing.append(
+                "budget"
+            )
 
         return missing
 
-    def is_complete(self) -> bool:
-        return len(
-            self.get_missing_information()
-        ) == 0
+    def is_complete(
+        self,
+    ) -> bool:
+
+        return (
+            len(
+                self.get_missing_information()
+            )
+            == 0
+        )
 
     # ---------------------------------------------------------
     # QUESTIONS
     # ---------------------------------------------------------
 
-    def get_next_question(self) -> str | None:
+    def get_next_question(
+        self,
+    ) -> str | None:
 
-        missing = self.get_missing_information()
+        missing = (
+            self.get_missing_information()
+        )
 
         if not missing:
             return None
@@ -148,51 +181,77 @@ class TripManager:
             ),
         }
 
-        return questions[missing[0]]
+        return questions[
+            missing[0]
+        ]
 
     # ---------------------------------------------------------
     # STATUS
     # ---------------------------------------------------------
 
-    def set_status(self, status: str) -> None:
+    def set_status(
+        self,
+        status: str,
+    ) -> None:
+
         self.state.status = status
 
-    def get_status(self) -> str:
+    def get_status(
+        self,
+    ) -> str:
+
         return self.state.status
 
     # ---------------------------------------------------------
-    # RESEARCH
+    # DESTINATION RESEARCH
     # ---------------------------------------------------------
 
     def set_destination_research(
         self,
-        research: str,
+        research: DestinationResearch,
     ) -> None:
 
-        self.state.destination_research = research
-        self.state.status = "destination_researched"
+        self.state.destination_research = (
+            research
+        )
+
+        self.state.status = (
+            "destination_researched"
+        )
 
     def get_destination_research(
         self,
-    ) -> str | None:
+    ) -> DestinationResearch | None:
 
-        return self.state.destination_research
+        return (
+            self.state.destination_research
+        )
 
     # ---------------------------------------------------------
     # PROGRESS
     # ---------------------------------------------------------
 
-    def get_progress(self) -> dict:
+    def get_progress(
+        self,
+    ) -> dict:
 
         return {
-            "complete": self.is_complete(),
+            "complete": (
+                self.is_complete()
+            ),
+
             "missing": (
                 self.get_missing_information()
             ),
-            "status": self.state.status,
+
+            "status": (
+                self.state.status
+            ),
+
             "request": (
                 self.state.request.model_dump()
             ),
+
             "has_destination_research": (
                 self.state.destination_research
                 is not None

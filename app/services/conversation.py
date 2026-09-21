@@ -4,6 +4,7 @@ from datetime import date, datetime
 from agents import Runner
 
 from app.agents.trip_planner import trip_planner
+from app.models.research import DestinationResearch
 from app.services.research import ResearchService
 from app.services.trip_manager import TripManager
 
@@ -19,20 +20,20 @@ class ConversationService:
     3. Update TripManager.
     4. Resolve date-year follow-ups deterministically.
     5. Ask missing questions.
-    6. Automatically start destination research
-       when the trip becomes complete.
-    7. Prevent completed workflows from accidentally
-       re-running expensive tools.
+    6. Automatically start destination research.
+    7. Store destination research as structured application data.
+    8. Prevent completed workflows from re-running tools.
 
     Architecture rule:
 
-    The LLM interprets user language.
+    LLMs interpret and research.
 
     Python owns:
     - application state
     - completeness
     - date-year resolution
     - workflow transitions
+    - presentation formatting
     """
 
     def __init__(self):
@@ -52,22 +53,6 @@ class ConversationService:
 
         # -----------------------------------------------------
         # COMPLETED DESTINATION RESEARCH
-        # -----------------------------------------------------
-        #
-        # Once destination research has completed, do not send
-        # ordinary follow-up messages back through Trip Planner.
-        #
-        # Previously:
-        #
-        # User: thank you
-        #     ↓
-        # Trip Planner
-        #     ↓
-        # Destination Researcher
-        #     ↓
-        # Tavily AGAIN
-        #
-        # The application state should prevent that.
         # -----------------------------------------------------
 
         if (
@@ -499,6 +484,16 @@ exists to continue.
             )
 
             print(
+                "\n📦 STRUCTURED DESTINATION RESEARCH"
+            )
+
+            print(
+                research.model_dump_json(
+                    indent=2
+                )
+            )
+
+            print(
                 "\n✅ DESTINATION RESEARCH COMPLETE"
             )
 
@@ -516,7 +511,9 @@ exists to continue.
         )
 
         if research:
-            return research
+            return self._build_research_response(
+                research
+            )
 
         return (
             "Your trip information is complete."
@@ -530,16 +527,6 @@ exists to continue.
         self,
         user_message: str,
     ) -> str:
-        """
-        Handle messages after destination research has already
-        completed without re-running agents or Tavily.
-
-        This is intentionally deterministic for now.
-
-        Later, when Tripzy gains itinerary editing and follow-up
-        capabilities, this state can route messages to the
-        appropriate workflow.
-        """
 
         normalized = (
             user_message
@@ -783,20 +770,161 @@ exists to continue.
         )
 
     # ---------------------------------------------------------
-    # RESEARCH RESPONSE
+    # RESEARCH PRESENTATION
     # ---------------------------------------------------------
 
     @staticmethod
     def _build_research_response(
-        research: str,
+        research: DestinationResearch,
     ) -> str:
+        """
+        Convert structured application data into a readable
+        CLI response.
 
-        return (
-            "✈️ Your trip details are complete.\n\n"
-            "🔎 I researched your destination.\n\n"
-            f"{research}\n\n"
-            "Next, we'll use this research to build "
-            "the rest of your trip plan."
+        Important:
+
+        DestinationResearch remains structured inside TripState.
+        This method is presentation-only.
+        """
+
+        sections = [
+            "✈️ Your trip details are complete.",
+            "",
+            f"# Destination Research: {research.destination}",
+        ]
+
+        # -----------------------------------------------------
+        # ATTRACTIONS
+        # -----------------------------------------------------
+
+        if research.attractions:
+
+            sections.extend(
+                [
+                    "",
+                    "## Major Attractions",
+                ]
+            )
+
+            for attraction in research.attractions:
+
+                sections.append(
+                    (
+                        f"- **{attraction.name}:** "
+                        f"{attraction.description}"
+                    )
+                )
+
+        # -----------------------------------------------------
+        # NEIGHBORHOODS
+        # -----------------------------------------------------
+
+        if research.neighborhoods:
+
+            sections.extend(
+                [
+                    "",
+                    "## Important Neighborhoods",
+                ]
+            )
+
+            for neighborhood in research.neighborhoods:
+
+                sections.append(
+                    (
+                        f"- **{neighborhood.name}:** "
+                        f"{neighborhood.description}"
+                    )
+                )
+
+        # -----------------------------------------------------
+        # TRANSPORTATION
+        # -----------------------------------------------------
+
+        if research.transportation:
+
+            sections.extend(
+                [
+                    "",
+                    "## Transportation",
+                ]
+            )
+
+            for item in research.transportation:
+
+                sections.append(
+                    f"- {item}"
+                )
+
+        # -----------------------------------------------------
+        # PRACTICAL TIPS
+        # -----------------------------------------------------
+
+        if research.practical_tips:
+
+            sections.extend(
+                [
+                    "",
+                    "## Practical Travel Considerations",
+                ]
+            )
+
+            for item in research.practical_tips:
+
+                sections.append(
+                    f"- {item}"
+                )
+
+        # -----------------------------------------------------
+        # LOCAL INFORMATION
+        # -----------------------------------------------------
+
+        if research.local_information:
+
+            sections.extend(
+                [
+                    "",
+                    "## Useful Local Information",
+                ]
+            )
+
+            for item in research.local_information:
+
+                sections.append(
+                    f"- {item}"
+                )
+
+        # -----------------------------------------------------
+        # SOURCES
+        # -----------------------------------------------------
+
+        if research.sources:
+
+            sections.extend(
+                [
+                    "",
+                    "## Sources",
+                ]
+            )
+
+            for source in research.sources:
+
+                sections.append(
+                    f"- {source.title}: {source.url}"
+                )
+
+        sections.extend(
+            [
+                "",
+                (
+                    "Next, we'll use this structured research "
+                    "to build the rest of your trip plan."
+                ),
+            ]
+        )
+
+        return "\n".join(
+            sections
         )
 
     # ---------------------------------------------------------
