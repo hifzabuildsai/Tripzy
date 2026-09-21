@@ -1,4 +1,5 @@
 import json
+from datetime import date, datetime
 
 from agents import Runner
 
@@ -16,9 +17,22 @@ class ConversationService:
     1. Receive user messages.
     2. Ask Tripzy to extract travel information.
     3. Update TripManager.
-    4. Ask missing questions.
-    5. Automatically start destination research
+    4. Resolve date-year follow-ups deterministically.
+    5. Ask missing questions.
+    6. Automatically start destination research
        when the trip becomes complete.
+    7. Prevent completed workflows from accidentally
+       re-running expensive tools.
+
+    Architecture rule:
+
+    The LLM interprets user language.
+
+    Python owns:
+    - application state
+    - completeness
+    - date-year resolution
+    - workflow transitions
     """
 
     def __init__(self):
@@ -36,12 +50,47 @@ class ConversationService:
         if not user_message:
             return self._get_next_question()
 
+        # -----------------------------------------------------
+        # COMPLETED DESTINATION RESEARCH
+        # -----------------------------------------------------
+        #
+        # Once destination research has completed, do not send
+        # ordinary follow-up messages back through Trip Planner.
+        #
+        # Previously:
+        #
+        # User: thank you
+        #     ↓
+        # Trip Planner
+        #     ↓
+        # Destination Researcher
+        #     ↓
+        # Tavily AGAIN
+        #
+        # The application state should prevent that.
+        # -----------------------------------------------------
+
+        if (
+            self.trip_manager.get_status()
+            == "destination_researched"
+        ):
+            return self._handle_post_research_message(
+                user_message
+            )
+
+        # -----------------------------------------------------
+        # CURRENT APPLICATION STATE
+        # -----------------------------------------------------
+
         current_state = self.trip_manager.get_state()
 
-        current_request = current_state.request.model_dump()
+        current_request = (
+            current_state.request.model_dump()
+        )
 
         missing_information = (
-            self.trip_manager.get_missing_information()
+            self.trip_manager
+            .get_missing_information()
         )
 
         next_missing_field = (
@@ -50,38 +99,154 @@ class ConversationService:
             else None
         )
 
+        # -----------------------------------------------------
+        # MISSING DATE YEAR
+        # -----------------------------------------------------
+
+        if (
+            next_missing_field
+            == "start_date_year"
+        ):
+
+            resolved = (
+                self._resolve_start_date_year(
+                    user_message=user_message,
+                )
+            )
+
+            if resolved:
+
+                print(
+                    "\n📅 RESOLVED TRAVEL DATE"
+                )
+
+                print(
+                    json.dumps(
+                        {
+                            "start_date": resolved,
+                        },
+                        indent=2,
+                    )
+                )
+
+                self.trip_manager.update_request_fields(
+                    start_date=resolved,
+                )
+
+                return (
+                    await self._continue_workflow()
+                )
+
+        # -----------------------------------------------------
+        # NORMAL LLM EXTRACTION
+        # -----------------------------------------------------
+
+        today = date.today()
+
         prompt = f"""
 You are processing the user's latest answer in an ongoing
 travel-planning conversation.
 
-CURRENT TRIP STATE:
+==================================================
+CURRENT DATE
+==================================================
 
-{json.dumps(current_request, indent=2)}
+Today's date is:
 
-CURRENT REQUIRED MISSING INFORMATION:
+{today.isoformat()}
 
-{json.dumps(missing_information, indent=2)}
+Year: {today.year}
+Month: {today.month}
+Day: {today.day}
 
-THE NEXT FIELD WE ARE TRYING TO COLLECT:
+Use the current date only when interpreting genuinely relative
+expressions such as:
 
-{next_missing_field}
+- today
+- tomorrow
+- next Friday
+- next week
 
-THE QUESTION THAT WAS ASKED:
-
-{self.last_question}
-
-USER'S LATEST MESSAGE:
-
-{user_message}
-
-Interpret the user's answer according to the current question
-and the missing field.
+Do NOT use the current year to fill in a year that the user
+never provided for a calendar date.
 
 For example:
 
+User:
+September 10
+
+Correct:
+
+{{
+    "start_date_text": "September 10"
+}}
+
+Incorrect:
+
+{{
+    "start_date": "{today.year}-09-10"
+}}
+
+==================================================
+CURRENT TRIP STATE
+==================================================
+
+{json.dumps(current_request, indent=2)}
+
+==================================================
+CURRENT REQUIRED MISSING INFORMATION
+==================================================
+
+{json.dumps(missing_information, indent=2)}
+
+==================================================
+NEXT FIELD WE ARE TRYING TO COLLECT
+==================================================
+
+{next_missing_field}
+
+==================================================
+QUESTION THAT WAS ASKED
+==================================================
+
+{self.last_question}
+
+==================================================
+USER'S LATEST MESSAGE
+==================================================
+
+{user_message}
+
+==================================================
+EXTRACTION RULES
+==================================================
+
+Interpret the user's answer according to the current question
+and missing field.
+
+Use extract_trip_request whenever travel information is
+present.
+
+Extract ONLY information actually supplied or safely resolved
+from an explicit relative date.
+
+Never invent missing information.
+
+Never overwrite existing information unless the user explicitly
+corrects it.
+
+Do not perform destination research yourself.
+
+Do not ask the user a question.
+
+==================================================
+FIELD EXAMPLES
+==================================================
+
 If the missing field is "origin":
 
-User: Karachi
+User:
+Karachi
 
 Extract:
 
@@ -89,9 +254,12 @@ Extract:
     "origin": "Karachi"
 }}
 
+--------------------------------------------------
+
 If the missing field is "destination":
 
-User: Istanbul
+User:
+Istanbul
 
 Extract:
 
@@ -99,9 +267,12 @@ Extract:
     "destination": "Istanbul"
 }}
 
+--------------------------------------------------
+
 If the missing field is "travelers":
 
-User: Me and my sister
+User:
+Me and my sister
 
 Extract:
 
@@ -109,9 +280,12 @@ Extract:
     "travelers": 2
 }}
 
+--------------------------------------------------
+
 If the missing field is "budget":
 
-User: $2000
+User:
+$2000
 
 Extract:
 
@@ -120,16 +294,124 @@ Extract:
     "currency": "USD"
 }}
 
-Rules:
+==================================================
+DATE RULES
+==================================================
 
-- Extract only information actually provided.
-- Never invent missing information.
-- Never change existing information unless the user
-  explicitly corrects it.
-- Use extract_trip_request when travel information
-  is present.
-- Do not perform destination research yourself.
-- Do not ask the user a question.
+Date correctness is critical.
+
+RULE 1:
+
+If the user explicitly provides a complete date including
+the year, normalize it to ISO YYYY-MM-DD.
+
+Example:
+
+User:
+September 10, 2027
+
+Extract:
+
+{{
+    "start_date": "2027-09-10"
+}}
+
+--------------------------------------------------
+
+RULE 2:
+
+If the user provides month and day but NO YEAR, DO NOT invent
+or infer the year.
+
+Example:
+
+User:
+September 10
+
+Extract:
+
+{{
+    "start_date_text": "September 10"
+}}
+
+NOT:
+
+{{
+    "start_date": "{today.year}-09-10"
+}}
+
+--------------------------------------------------
+
+RULE 3:
+
+If the user gives a date without a year together with a
+duration, preserve both.
+
+Example:
+
+User:
+September 10 for 5 days
+
+Extract:
+
+{{
+    "start_date_text": "September 10",
+    "duration_days": 5
+}}
+
+--------------------------------------------------
+
+RULE 4:
+
+Relative dates may be resolved using today's date.
+
+Today is:
+
+{today.isoformat()}
+
+Example:
+
+User:
+tomorrow
+
+You may calculate the correct ISO date relative to today.
+
+--------------------------------------------------
+
+RULE 5:
+
+Never silently convert an ambiguous date into a complete date.
+
+Calendar date without year:
+
+September 10
+
+means:
+
+start_date_text = "September 10"
+
+It does NOT mean:
+
+{today.year}-09-10
+
+and it does NOT automatically mean next year.
+
+==================================================
+FINAL RULE
+==================================================
+
+Your responsibility is:
+
+USER LANGUAGE
+    ↓
+INTERPRET CONTEXT
+    ↓
+EXTRACT EXPLICIT INFORMATION
+    ↓
+extract_trip_request()
+
+Python application logic decides whether enough information
+exists to continue.
 """
 
         result = await Runner.run(
@@ -137,11 +419,18 @@ Rules:
             prompt,
         )
 
-        extracted_data = self._extract_tool_output(result)
+        extracted_data = (
+            self._extract_tool_output(
+                result
+            )
+        )
 
         if extracted_data:
 
-            print("\n🧠 EXTRACTED TRIP DATA")
+            print(
+                "\n🧠 EXTRACTED TRIP DATA"
+            )
+
             print(
                 json.dumps(
                     extracted_data,
@@ -153,14 +442,21 @@ Rules:
                 **extracted_data
             )
 
-        # -----------------------------------------------------
-        # CHECK WHETHER TRIP IS COMPLETE
-        # -----------------------------------------------------
+        return await self._continue_workflow()
+
+    # ---------------------------------------------------------
+    # WORKFLOW
+    # ---------------------------------------------------------
+
+    async def _continue_workflow(
+        self,
+    ) -> str:
 
         if not self.trip_manager.is_complete():
 
             next_question = (
-                self.trip_manager.get_next_question()
+                self.trip_manager
+                .get_next_question()
             )
 
             self.last_question = next_question
@@ -168,13 +464,14 @@ Rules:
             return next_question
 
         # -----------------------------------------------------
-        # TRIP COMPLETE
+        # START DESTINATION RESEARCH
         # -----------------------------------------------------
 
         if (
             self.trip_manager.get_status()
             == "collecting"
         ):
+
             self.trip_manager.set_status(
                 "researching_destination"
             )
@@ -226,44 +523,227 @@ Rules:
         )
 
     # ---------------------------------------------------------
+    # POST-RESEARCH CONVERSATION
+    # ---------------------------------------------------------
+
+    def _handle_post_research_message(
+        self,
+        user_message: str,
+    ) -> str:
+        """
+        Handle messages after destination research has already
+        completed without re-running agents or Tavily.
+
+        This is intentionally deterministic for now.
+
+        Later, when Tripzy gains itinerary editing and follow-up
+        capabilities, this state can route messages to the
+        appropriate workflow.
+        """
+
+        normalized = (
+            user_message
+            .strip()
+            .lower()
+        )
+
+        gratitude_messages = {
+            "thanks",
+            "thank you",
+            "thanks!",
+            "thank you!",
+            "thx",
+            "ty",
+        }
+
+        if normalized in gratitude_messages:
+
+            return (
+                "You're welcome! Your destination research "
+                "is ready. Next, we can build the rest of "
+                "your trip plan."
+            )
+
+        return (
+            "Your destination research is already complete. "
+            "The next Tripzy milestone will use it to build "
+            "the rest of your trip plan."
+        )
+
+    # ---------------------------------------------------------
+    # DATE RESOLUTION
+    # ---------------------------------------------------------
+
+    def _resolve_start_date_year(
+        self,
+        user_message: str,
+    ) -> str | None:
+
+        request = (
+            self.trip_manager
+            .get_state()
+            .request
+        )
+
+        date_text = (
+            request.start_date_text
+        )
+
+        if not date_text:
+            return None
+
+        year = self._extract_year(
+            user_message
+        )
+
+        if year is None:
+            return None
+
+        month_day = self._parse_month_day(
+            date_text
+        )
+
+        if month_day is None:
+            return None
+
+        month, day = month_day
+
+        try:
+
+            resolved_date = date(
+                year,
+                month,
+                day,
+            )
+
+        except ValueError:
+            return None
+
+        return resolved_date.isoformat()
+
+    @staticmethod
+    def _extract_year(
+        user_message: str,
+    ) -> int | None:
+
+        words = (
+            user_message
+            .replace(",", " ")
+            .replace(".", " ")
+            .split()
+        )
+
+        for word in words:
+
+            if (
+                len(word) == 4
+                and word.isdigit()
+            ):
+
+                year = int(word)
+
+                if 1900 <= year <= 2200:
+                    return year
+
+        return None
+
+    @staticmethod
+    def _parse_month_day(
+        date_text: str,
+    ) -> tuple[int, int] | None:
+
+        formats = (
+            "%B %d",
+            "%b %d",
+            "%d %B",
+            "%d %b",
+        )
+
+        cleaned = (
+            date_text
+            .strip()
+            .replace(",", "")
+        )
+
+        for date_format in formats:
+
+            try:
+
+                parsed = datetime.strptime(
+                    cleaned,
+                    date_format,
+                )
+
+                return (
+                    parsed.month,
+                    parsed.day,
+                )
+
+            except ValueError:
+                continue
+
+        return None
+
+    # ---------------------------------------------------------
     # TOOL OUTPUT
     # ---------------------------------------------------------
 
     @staticmethod
-    def _extract_tool_output(result) -> dict:
+    def _extract_tool_output(
+        result,
+    ) -> dict:
 
         for item in result.new_items:
 
-            if not hasattr(item, "output"):
+            if not hasattr(
+                item,
+                "output",
+            ):
                 continue
 
             output = item.output
 
-            if not isinstance(output, str):
+            if not isinstance(
+                output,
+                str,
+            ):
                 continue
 
             try:
-                data = json.loads(output)
+
+                data = json.loads(
+                    output
+                )
 
             except json.JSONDecodeError:
                 continue
 
-            if isinstance(data, dict):
+            if isinstance(
+                data,
+                dict,
+            ):
+
                 return (
                     ConversationService
-                    ._filter_trip_fields(data)
+                    ._filter_trip_fields(
+                        data
+                    )
                 )
 
         return {}
 
     @staticmethod
-    def _filter_trip_fields(data: dict) -> dict:
+    def _filter_trip_fields(
+        data: dict,
+    ) -> dict:
 
         allowed_fields = {
             "origin",
             "destination",
             "start_date",
             "end_date",
+            "start_date_text",
+            "end_date_text",
             "duration_days",
             "travelers",
             "budget",
@@ -283,7 +763,9 @@ Rules:
     # QUESTIONS
     # ---------------------------------------------------------
 
-    def _get_next_question(self) -> str:
+    def _get_next_question(
+        self,
+    ) -> str:
 
         question = (
             self.trip_manager
@@ -291,7 +773,9 @@ Rules:
         )
 
         if question:
+
             self.last_question = question
+
             return question
 
         return (

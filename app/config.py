@@ -3,8 +3,34 @@ import os
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from agents import OpenAIChatCompletionsModel
+from agents import (
+    OpenAIChatCompletionsModel,
+    set_tracing_disabled,
+)
 
 load_dotenv()
+
+
+# ============================================================
+# OPENAI AGENTS SDK
+# ============================================================
+
+# Tripzy currently uses Gemini for model inference.
+#
+# The OpenAI Agents SDK enables OpenAI trace exporting by
+# default. Because we are not using an OpenAI API key for
+# tracing, disable trace export globally.
+#
+# This does NOT disable:
+# - Gemini inference
+# - agents
+# - tools
+# - handoffs
+# - Tavily
+#
+# It only disables OpenAI trace collection/export.
+
+set_tracing_disabled(True)
 
 
 # -------------------------
