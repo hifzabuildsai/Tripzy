@@ -4,6 +4,10 @@ from app.models.flight import (
     FlightOption,
     FlightResearch,
 )
+from app.models.hotel import (
+    HotelOption,
+    HotelResearch,
+)
 from app.models.research import DestinationResearch
 from app.models.state import TripState
 
@@ -159,27 +163,21 @@ class TripManager:
             "origin": (
                 "Where are you travelling from?"
             ),
-
             "destination": (
                 "Where would you like to travel to?"
             ),
-
             "start_date": (
                 "When are you planning to travel?"
             ),
-
             "start_date_year": (
                 "What year are you planning to travel?"
             ),
-
             "end_date_or_duration": (
                 "How long will you be travelling?"
             ),
-
             "travelers": (
                 "How many people are travelling?"
             ),
-
             "budget": (
                 "What's your approximate travel budget?"
             ),
@@ -239,12 +237,6 @@ class TripManager:
         self,
         research: FlightResearch,
     ) -> None:
-        """
-        Store validated flight options in TripState.
-
-        FlightResearch itself is the research envelope.
-        TripState currently owns the actual options list.
-        """
 
         self.state.flight_options = list(
             research.options
@@ -259,6 +251,35 @@ class TripManager:
     ) -> list[FlightOption]:
 
         return self.state.flight_options
+
+    # ---------------------------------------------------------
+    # HOTEL RESEARCH
+    # ---------------------------------------------------------
+
+    def set_hotel_research(
+        self,
+        research: HotelResearch,
+    ) -> None:
+        """
+        Store validated hotel options in TripState.
+
+        HotelResearch is the research envelope.
+        TripState owns the structured HotelOption list.
+        """
+
+        self.state.hotel_options = list(
+            research.options
+        )
+
+        self.state.status = (
+            "hotels_researched"
+        )
+
+    def get_hotel_options(
+        self,
+    ) -> list[HotelOption]:
+
+        return self.state.hotel_options
 
     # ---------------------------------------------------------
     # PROGRESS
@@ -293,6 +314,12 @@ class TripManager:
             "flight_options_count": (
                 len(
                     self.state.flight_options
+                )
+            ),
+
+            "hotel_options_count": (
+                len(
+                    self.state.hotel_options
                 )
             ),
         }

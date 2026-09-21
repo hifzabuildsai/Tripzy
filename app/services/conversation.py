@@ -5,8 +5,10 @@ from agents import Runner
 
 from app.agents.trip_planner import trip_planner
 from app.models.flight import FlightResearch
+from app.models.hotel import HotelResearch
 from app.models.research import DestinationResearch
 from app.services.flight_research import FlightResearchService
+from app.services.hotel_research import HotelResearchService
 from app.services.research import ResearchService
 from app.services.trip_manager import TripManager
 
@@ -29,6 +31,7 @@ class ConversationService:
         self.trip_manager = TripManager()
         self.research_service = ResearchService()
         self.flight_research_service = FlightResearchService()
+        self.hotel_research_service = HotelResearchService()
         self.last_question: str | None = None
 
     async def process_message(
@@ -43,7 +46,7 @@ class ConversationService:
 
         if (
             self.trip_manager.get_status()
-            == "flights_researched"
+            == "hotels_researched"
         ):
             return self._handle_completed_research_message(
                 user_message
@@ -195,7 +198,7 @@ Never invent missing information.
 Never overwrite existing information unless the user explicitly
 corrects it.
 
-Do not perform destination or flight research yourself.
+Do not perform destination, flight, or hotel research yourself.
 
 Do not ask the user a question.
 
@@ -491,26 +494,78 @@ Python application logic decides what happens next.
                 "\n✅ FLIGHT RESEARCH COMPLETE"
             )
 
+            status = (
+                self.trip_manager
+                .get_status()
+            )
+
+        # -----------------------------------------------------
+        # HOTEL RESEARCH
+        # -----------------------------------------------------
+
+        if status == "flights_researched":
+
+            self.trip_manager.set_status(
+                "researching_hotels"
+            )
+
+            print(
+                "\n🏨 STARTING HOTEL RESEARCH"
+            )
+
+            hotel_research = (
+                await self.hotel_research_service
+                .research_hotels(
+                    request
+                )
+            )
+
+            self.trip_manager.set_hotel_research(
+                hotel_research
+            )
+
+            print(
+                "\n📦 STRUCTURED HOTEL RESEARCH"
+            )
+
+            print(
+                hotel_research.model_dump_json(
+                    indent=2
+                )
+            )
+
+            print(
+                "\n✅ HOTEL RESEARCH COMPLETE"
+            )
+
             return self._build_combined_response(
                 destination_research=(
                     self.trip_manager
                     .get_destination_research()
                 ),
-                flight_research=flight_research,
+                flight_research=(
+                    self._build_flight_research_from_state()
+                ),
+                hotel_research=hotel_research,
             )
 
         # -----------------------------------------------------
         # ALREADY COMPLETE
         # -----------------------------------------------------
 
-        if status == "flights_researched":
+        if status == "hotels_researched":
 
             return self._build_combined_response(
                 destination_research=(
                     self.trip_manager
                     .get_destination_research()
                 ),
-                flight_research=self._build_flight_research_from_state(),
+                flight_research=(
+                    self._build_flight_research_from_state()
+                ),
+                hotel_research=(
+                    self._build_hotel_research_from_state()
+                ),
             )
 
         return (
@@ -544,15 +599,15 @@ Python application logic decides what happens next.
         if normalized in gratitude_messages:
 
             return (
-                "You're welcome! Your destination and flight "
-                "research are ready. Next, we can research "
-                "hotels for your trip."
+                "You're welcome! Your destination, flight, "
+                "and hotel research are ready. Next, Tripzy "
+                "can research activities and places."
             )
 
         return (
-            "Your destination and flight research are already "
-            "complete. The next Tripzy milestone will use this "
-            "state to research hotels."
+            "Your destination, flight, and hotel research are "
+            "already complete. The next Tripzy milestone will "
+            "use this state to research activities and places."
         )
 
     # ---------------------------------------------------------
@@ -996,12 +1051,149 @@ Python application logic decides what happens next.
 
         return sections
 
+    @staticmethod
+    def _build_hotel_section(
+        research: HotelResearch,
+    ) -> list[str]:
+
+        sections = [
+            "",
+            (
+                "# Hotel Research: "
+                f"{research.destination}"
+            ),
+            "",
+            (
+                "Check-in: "
+                f"{research.check_in_date}"
+            ),
+        ]
+
+        if research.check_out_date:
+            sections.append(
+                (
+                    "Check-out: "
+                    f"{research.check_out_date}"
+                )
+            )
+
+        sections.append(
+            (
+                "Travelers: "
+                f"{research.travelers}"
+            )
+        )
+
+        if not research.options:
+
+            sections.extend(
+                [
+                    "",
+                    (
+                        "No sufficiently supported structured "
+                        "hotel options were found."
+                    ),
+                ]
+            )
+
+        for index, option in enumerate(
+            research.options,
+            start=1,
+        ):
+
+            sections.extend(
+                [
+                    "",
+                    f"## Hotel Option {index}",
+                    f"- Name: {option.name}",
+                ]
+            )
+
+            if option.neighborhood:
+                sections.append(
+                    (
+                        "- Neighborhood: "
+                        f"{option.neighborhood}"
+                    )
+                )
+
+            if option.description:
+                sections.append(
+                    (
+                        "- Description: "
+                        f"{option.description}"
+                    )
+                )
+
+            if option.price_per_night is not None:
+
+                price = (
+                    f"{option.price_per_night:,.2f}"
+                )
+
+                if option.currency:
+                    price = (
+                        f"{option.currency} {price}"
+                    )
+
+                sections.append(
+                    (
+                        "- Researched price/night: "
+                        f"{price}"
+                    )
+                )
+
+            if option.rating is not None:
+                sections.append(
+                    (
+                        "- Rating: "
+                        f"{option.rating}"
+                    )
+                )
+
+            if option.source:
+                sections.append(
+                    (
+                        "- Source: "
+                        f"{option.source.title} "
+                        f"({option.source.url})"
+                    )
+                )
+
+        if research.notes:
+
+            sections.extend(
+                [
+                    "",
+                    "## Hotel Research Notes",
+                ]
+            )
+
+            for note in research.notes:
+                sections.append(
+                    f"- {note}"
+                )
+
+        sections.extend(
+            [
+                "",
+                (
+                    "Hotel information above is research data, "
+                    "not confirmed live room availability or "
+                    "guaranteed booking pricing."
+                ),
+            ]
+        )
+
+        return sections
+
     def _build_combined_response(
         self,
         destination_research: (
             DestinationResearch | None
         ),
         flight_research: FlightResearch,
+        hotel_research: HotelResearch,
     ) -> str:
 
         sections = [
@@ -1024,11 +1216,17 @@ Python application logic decides what happens next.
         )
 
         sections.extend(
+            self._build_hotel_section(
+                hotel_research
+            )
+        )
+
+        sections.extend(
             [
                 "",
                 (
                     "Next, Tripzy can use this state to "
-                    "research hotels."
+                    "research activities and places."
                 ),
             ]
         )
@@ -1036,6 +1234,10 @@ Python application logic decides what happens next.
         return "\n".join(
             sections
         )
+
+    # ---------------------------------------------------------
+    # REBUILD RESEARCH ENVELOPES FROM STATE
+    # ---------------------------------------------------------
 
     def _build_flight_research_from_state(
         self,
@@ -1054,6 +1256,37 @@ Python application logic decides what happens next.
             options=(
                 self.trip_manager
                 .get_flight_options()
+            ),
+            notes=[],
+        )
+
+    def _build_hotel_research_from_state(
+        self,
+    ) -> HotelResearch:
+
+        request = (
+            self.trip_manager
+            .get_state()
+            .request
+        )
+
+        check_out_date = (
+            self.hotel_research_service
+            ._resolve_check_out_date(
+                request
+            )
+        )
+
+        return HotelResearch(
+            destination=request.destination,
+            check_in_date=request.start_date,
+            check_out_date=check_out_date,
+            travelers=request.travelers,
+            budget=request.budget,
+            currency=request.currency,
+            options=(
+                self.trip_manager
+                .get_hotel_options()
             ),
             notes=[],
         )
