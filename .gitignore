@@ -82,3 +82,8 @@ Thumbs.db
 build/
 dist/
 *.egg-info/
+# Next.js / Node
+node_modules/
+.next/
+out/
+frontend-tripzy/
