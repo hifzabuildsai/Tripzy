@@ -21,10 +21,15 @@ import type {
 
 import type { StickerAsset } from "@/types/sticker";
 
+export type StickerSource =
+  | "universal"
+  | "destination";
+
 export type ActiveSticker = {
   instanceId: string;
   sticker: StickerAsset;
   slot: StickerSlot;
+  source: StickerSource;
   motionConfig: StickerMotionConfig;
 };
 
@@ -34,7 +39,14 @@ type ViewportMode =
   | "laptop"
   | "desktop";
 
-function shuffle<T>(items: readonly T[]): T[] {
+type Composition = {
+  universal: number;
+  destination: number;
+};
+
+function shuffle<T>(
+  items: readonly T[],
+): T[] {
   const copy = [...items];
 
   for (
@@ -60,6 +72,12 @@ function randomBetween(
   max: number,
 ): number {
   return Math.random() * (max - min) + min;
+}
+
+function createInstanceId(): string {
+  return `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
 }
 
 function getViewportMode(
@@ -94,99 +112,222 @@ function getSlotsForMode(
   return DESKTOP_STICKER_SLOTS;
 }
 
-function getStickerCount(
+function getComposition(
   mode: ViewportMode,
-): number {
+  hasDestination: boolean,
+): Composition {
+  if (!hasDestination) {
+    if (mode === "mobile") {
+      return {
+        destination: 0,
+        universal: 4,
+      };
+    }
+
+    if (mode === "tablet") {
+      return {
+        destination: 0,
+        universal: 6,
+      };
+    }
+
+    if (mode === "laptop") {
+      return {
+        destination: 0,
+        universal: 8,
+      };
+    }
+
+    return {
+      destination: 0,
+      universal: 9,
+    };
+  }
+
   if (mode === "mobile") {
-    return 4;
+    return {
+      destination: 2,
+      universal: 2,
+    };
   }
 
   if (mode === "tablet") {
-    return 6;
+    return {
+      destination: 3,
+      universal: 4,
+    };
   }
 
-  if (mode === "laptop") {
-    return 8;
-  }
-
-  return 9;
+  /*
+   * Laptop + desktop:
+   * 4 destination + 5 universal = 9.
+   */
+  return {
+    destination: 4,
+    universal: 5,
+  };
 }
 
-function createInstanceId(): string {
-  return `${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}`;
-}
+type PendingSticker = {
+  sticker: StickerAsset;
+  source: StickerSource;
+};
 
 function createInitialWorld(
-  stickers: readonly StickerAsset[],
+  universalStickers: readonly StickerAsset[],
+  destinationStickers:
+    | readonly StickerAsset[]
+    | undefined,
   mode: ViewportMode,
 ): ActiveSticker[] {
-  const count = getStickerCount(mode);
+  const hasDestination =
+    Boolean(
+      destinationStickers &&
+        destinationStickers.length > 0,
+    );
 
-  const selectedStickers = shuffle(
-    stickers,
-  ).slice(
-    0,
-    Math.min(count, stickers.length),
+  const composition =
+    getComposition(
+      mode,
+      hasDestination,
+    );
+
+  const pending: PendingSticker[] = [];
+
+  if (
+    destinationStickers &&
+    composition.destination > 0
+  ) {
+    const selectedDestination =
+      shuffle(
+        destinationStickers,
+      ).slice(
+        0,
+        composition.destination,
+      );
+
+    selectedDestination.forEach(
+      (sticker) => {
+        pending.push({
+          sticker,
+          source: "destination",
+        });
+      },
+    );
+  }
+
+  const selectedUniversal =
+    shuffle(
+      universalStickers,
+    ).slice(
+      0,
+      composition.universal,
+    );
+
+  selectedUniversal.forEach(
+    (sticker) => {
+      pending.push({
+        sticker,
+        source: "universal",
+      });
+    },
   );
 
-  const selectedSlots = shuffle(
-    getSlotsForMode(mode),
-  ).slice(0, selectedStickers.length);
+  /*
+   * Mix destination + universal together before
+   * assigning positions, so destination assets
+   * do not cluster in one visual region.
+   */
+  const shuffledPending =
+    shuffle(pending);
 
-  return selectedStickers.map(
-    (sticker, index) => {
-      const slot = selectedSlots[index];
+  const selectedSlots =
+    shuffle(
+      getSlotsForMode(mode),
+    ).slice(
+      0,
+      shuffledPending.length,
+    );
 
-      /*
-       * Small initial stagger means the whole world
-       * doesn't enter/leave at the exact same moment.
-       */
-      const entranceDelay =
-        index * 0.42 +
-        randomBetween(0, 0.3);
+  return shuffledPending.map(
+    (entry, index) => {
+      const slot =
+        selectedSlots[index];
 
       return {
-        instanceId: createInstanceId(),
+        instanceId:
+          createInstanceId(),
 
-        sticker,
+        sticker:
+          entry.sticker,
+
+        source:
+          entry.source,
 
         slot,
 
-        motionConfig: createStickerMotion(
-          sticker.motion.minScale,
-          sticker.motion.maxScale,
-          sticker.motion.rotationRange,
-          slot,
-          entranceDelay,
-        ),
+        motionConfig:
+          createStickerMotion(
+            entry.sticker.motion
+              .minScale,
+
+            entry.sticker.motion
+              .maxScale,
+
+            entry.sticker.motion
+              .rotationRange,
+
+            slot,
+
+            index * 0.34 +
+              randomBetween(
+                0,
+                0.28,
+              ),
+          ),
       };
     },
   );
 }
 
 export function useStickerWorld(
-  stickers: readonly StickerAsset[],
-) {
-  const [viewportMode, setViewportMode] =
-    useState<ViewportMode>("desktop");
+  universalStickers:
+    readonly StickerAsset[],
 
-  const [activeStickers, setActiveStickers] =
-    useState<ActiveSticker[]>([]);
+  destinationStickers?:
+    readonly StickerAsset[],
+) {
+  const [
+    viewportMode,
+    setViewportMode,
+  ] =
+    useState<ViewportMode>(
+      "desktop",
+    );
+
+  const [
+    activeStickers,
+    setActiveStickers,
+  ] =
+    useState<ActiveSticker[]>(
+      [],
+    );
 
   useEffect(() => {
-    const updateViewport = () => {
-      const nextMode = getViewportMode(
-        window.innerWidth,
-      );
+    const updateViewport =
+      () => {
+        const nextMode =
+          getViewportMode(
+            window.innerWidth,
+          );
 
-      setViewportMode((currentMode) =>
-        currentMode === nextMode
-          ? currentMode
-          : nextMode,
-      );
-    };
+        setViewportMode(
+          (currentMode) =>
+            currentMode === nextMode
+              ? currentMode
+              : nextMode,
+        );
+      };
 
     updateViewport();
 
@@ -206,125 +347,207 @@ export function useStickerWorld(
   useEffect(() => {
     setActiveStickers(
       createInitialWorld(
-        stickers,
+        universalStickers,
+        destinationStickers,
         viewportMode,
       ),
     );
-  }, [stickers, viewportMode]);
+  }, [
+    universalStickers,
+    destinationStickers,
+    viewportMode,
+  ]);
 
-  const availableWorldSlots = useMemo(
-    () => getSlotsForMode(viewportMode),
-    [viewportMode],
-  );
+  const availableSlots =
+    useMemo(
+      () =>
+        getSlotsForMode(
+          viewportMode,
+        ),
+      [viewportMode],
+    );
 
-  const recycleSticker = useCallback(
-    (instanceId: string) => {
-      setActiveStickers((current) => {
-        const retiringSticker =
-          current.find(
-            (entry) =>
-              entry.instanceId ===
-              instanceId,
-          );
+  const recycleSticker =
+    useCallback(
+      (
+        instanceId: string,
+      ) => {
+        setActiveStickers(
+          (current) => {
+            const retiring =
+              current.find(
+                (entry) =>
+                  entry.instanceId ===
+                  instanceId,
+              );
 
-        if (!retiringSticker) {
-          return current;
-        }
+            if (!retiring) {
+              return current;
+            }
 
-        const remaining = current.filter(
-          (entry) =>
-            entry.instanceId !==
-            instanceId,
+            const remaining =
+              current.filter(
+                (entry) =>
+                  entry.instanceId !==
+                  instanceId,
+              );
+
+            /*
+             * Destination stickers only replace
+             * themselves from destination pool.
+             *
+             * Universal stickers only replace
+             * themselves from universal pool.
+             *
+             * Result:
+             * composition stays exactly 4 + 5.
+             */
+            const sourcePool =
+              retiring.source ===
+                "destination" &&
+              destinationStickers
+                ? destinationStickers
+                : universalStickers;
+
+            const activeSameSourceIds =
+              new Set(
+                remaining
+                  .filter(
+                    (entry) =>
+                      entry.source ===
+                      retiring.source,
+                  )
+                  .map(
+                    (entry) =>
+                      entry.sticker.id,
+                  ),
+              );
+
+            /*
+             * Prefer:
+             * - not currently visible
+             * - not the one that just disappeared
+             */
+            const freshPool =
+              sourcePool.filter(
+                (sticker) =>
+                  !activeSameSourceIds.has(
+                    sticker.id,
+                  ) &&
+                  sticker.id !==
+                    retiring.sticker.id,
+              );
+
+            const fallbackPool =
+              sourcePool.filter(
+                (sticker) =>
+                  !activeSameSourceIds.has(
+                    sticker.id,
+                  ),
+              );
+
+            const nextSticker =
+              shuffle(
+                freshPool.length > 0
+                  ? freshPool
+                  : fallbackPool,
+              )[0] ??
+              retiring.sticker;
+
+            /*
+             * Pick a completely free slot and avoid
+             * immediately returning to the slot
+             * that was just vacated.
+             */
+            const occupiedSlotIds =
+              new Set(
+                remaining.map(
+                  (entry) =>
+                    entry.slot.id,
+                ),
+              );
+
+            const freshSlots =
+              availableSlots.filter(
+                (slot) =>
+                  !occupiedSlotIds.has(
+                    slot.id,
+                  ) &&
+                  slot.id !==
+                    retiring.slot.id,
+              );
+
+            const fallbackSlots =
+              availableSlots.filter(
+                (slot) =>
+                  !occupiedSlotIds.has(
+                    slot.id,
+                  ),
+              );
+
+            const nextSlot =
+              shuffle(
+                freshSlots.length > 0
+                  ? freshSlots
+                  : fallbackSlots,
+              )[0] ??
+              retiring.slot;
+
+            const replacement: ActiveSticker =
+              {
+                instanceId:
+                  createInstanceId(),
+
+                sticker:
+                  nextSticker,
+
+                source:
+                  retiring.source,
+
+                slot:
+                  nextSlot,
+
+                /*
+                 * No fixed hero/support/detail.
+                 * Same spatial behavior as
+                 * Universal Sticker World.
+                 */
+                motionConfig:
+                  createStickerMotion(
+                    nextSticker.motion
+                      .minScale,
+
+                    nextSticker.motion
+                      .maxScale,
+
+                    nextSticker.motion
+                      .rotationRange,
+
+                    nextSlot,
+
+                    randomBetween(
+                      0.25,
+                      0.85,
+                    ),
+                  ),
+              };
+
+            return current.map(
+              (entry) =>
+                entry.instanceId ===
+                instanceId
+                  ? replacement
+                  : entry,
+            );
+          },
         );
-
-        /*
-         * Don't immediately repeat the sticker that
-         * just disappeared, and don't duplicate any
-         * sticker currently visible.
-         */
-        const activeStickerIds = new Set(
-          remaining.map(
-            (entry) => entry.sticker.id,
-          ),
-        );
-
-        const freshStickerPool =
-          stickers.filter(
-            (sticker) =>
-              !activeStickerIds.has(
-                sticker.id,
-              ) &&
-              sticker.id !==
-                retiringSticker.sticker.id,
-          );
-
-        const nextSticker =
-          shuffle(
-            freshStickerPool.length > 0
-              ? freshStickerPool
-              : stickers,
-          )[0];
-
-        /*
-         * New sticker must also move somewhere else.
-         */
-        const occupiedSlotIds = new Set(
-          remaining.map(
-            (entry) => entry.slot.id,
-          ),
-        );
-
-        const freshSlotPool =
-          availableWorldSlots.filter(
-            (slot) =>
-              !occupiedSlotIds.has(
-                slot.id,
-              ) &&
-              slot.id !==
-                retiringSticker.slot.id,
-          );
-
-        const fallbackSlotPool =
-          availableWorldSlots.filter(
-            (slot) =>
-              !occupiedSlotIds.has(
-                slot.id,
-              ),
-          );
-
-        const nextSlot =
-          shuffle(
-            freshSlotPool.length > 0
-              ? freshSlotPool
-              : fallbackSlotPool,
-          )[0] ?? retiringSticker.slot;
-
-        const replacement: ActiveSticker = {
-          instanceId: createInstanceId(),
-
-          sticker: nextSticker,
-
-          slot: nextSlot,
-
-          motionConfig: createStickerMotion(
-            nextSticker.motion.minScale,
-            nextSticker.motion.maxScale,
-            nextSticker.motion.rotationRange,
-            nextSlot,
-            randomBetween(0.25, 0.9),
-          ),
-        };
-
-        return current.map((entry) =>
-          entry.instanceId ===
-          instanceId
-            ? replacement
-            : entry,
-        );
-      });
-    },
-    [stickers, availableWorldSlots],
-  );
+      },
+      [
+        universalStickers,
+        destinationStickers,
+        availableSlots,
+      ],
+    );
 
   return {
     activeStickers,
