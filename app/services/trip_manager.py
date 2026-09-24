@@ -175,33 +175,21 @@ class TripManager:
         if not missing:
             return None
 
-        questions = {
-            "origin": (
-                "Where are you travelling from?"
-            ),
-            "destination": (
-                "Where would you like to travel to?"
-            ),
-            "start_date": (
-                "When are you planning to travel?"
-            ),
-            "start_date_year": (
-                "What year are you planning to travel?"
-            ),
-            "end_date_or_duration": (
-                "How long will you be travelling?"
-            ),
-            "travelers": (
-                "How many people are travelling?"
-            ),
-            "budget": (
-                "What's your approximate travel budget?"
-            ),
+        descriptions = {
+            "origin": "where you're travelling from",
+            "destination": "where you'd like to go",
+            "start_date": "your travel start date (including the year)",
+            "start_date_year": "the year for your travel start date",
+            "end_date_or_duration": "your end date or trip duration",
+            "travelers": "how many people are travelling",
+            "budget": "your approximate total budget and currency",
         }
 
-        return questions[
-            missing[0]
-        ]
+        return (
+            "To plan your trip, please share: "
+            + "; ".join(descriptions[field] for field in missing)
+            + ". You can answer everything in one message."
+        )
 
     # ---------------------------------------------------------
     # STATUS

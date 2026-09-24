@@ -97,17 +97,11 @@ class ConversationService:
             .get_missing_information()
         )
 
-        next_missing_field = (
-            missing_information[0]
-            if missing_information
-            else None
-        )
-
         # -----------------------------------------------------
         # MISSING DATE YEAR
         # -----------------------------------------------------
 
-        if next_missing_field == "start_date_year":
+        if "start_date_year" in missing_information:
 
             resolved = self._resolve_start_date_year(
                 user_message=user_message,
@@ -132,7 +126,15 @@ class ConversationService:
                     start_date=resolved,
                 )
 
-                return await self._continue_workflow()
+                # The same message may also contain travelers, budget,
+                # or corrections. Continue through extraction.
+                current_request = (
+                    self.trip_manager.get_state()
+                    .request.model_dump()
+                )
+                missing_information = (
+                    self.trip_manager.get_missing_information()
+                )
 
         # -----------------------------------------------------
         # NORMAL LLM EXTRACTION
@@ -197,10 +199,10 @@ CURRENT REQUIRED MISSING INFORMATION
 {json.dumps(missing_information, indent=2)}
 
 ==================================================
-NEXT FIELD WE ARE TRYING TO COLLECT
+MISSING FIELDS TO COLLECT
 ==================================================
 
-{next_missing_field}
+{json.dumps(missing_information, indent=2)}
 
 ==================================================
 QUESTION THAT WAS ASKED
@@ -218,8 +220,14 @@ USER'S LATEST MESSAGE
 EXTRACTION RULES
 ==================================================
 
-Interpret the user's answer according to the current question
-and missing field.
+Interpret short answers using the question that was asked.
+The question can ask for several fields at once; extract every
+field the user actually supplies, including optional preferences
+and explicit corrections to existing fields.
+If both origin and destination are missing, a single bare city
+is ambiguous. Do not guess its role; leave those fields missing
+so the application can clarify. If only one location is missing,
+use that context for a bare city.
 
 Use extract_trip_request whenever travel information is
 present.
@@ -257,7 +265,7 @@ Do not ask the user a question.
 FIELD EXAMPLES
 ==================================================
 
-If the missing field is "origin":
+If only "origin" is missing:
 
 User:
 Karachi
@@ -270,7 +278,7 @@ Extract:
 
 --------------------------------------------------
 
-If the missing field is "destination":
+If only "destination" is missing:
 
 User:
 Istanbul
@@ -283,7 +291,7 @@ Extract:
 
 --------------------------------------------------
 
-If the missing field is "travelers":
+If the question asks for "travelers":
 
 User:
 Me and my sister
@@ -296,7 +304,7 @@ Extract:
 
 --------------------------------------------------
 
-If the missing field is "budget":
+If the question asks for "budget":
 
 User:
 $2000
@@ -322,6 +330,30 @@ Extract:
         "history",
         "food"
     ]
+}}
+
+--------------------------------------------------
+
+If the user supplies a complete mission, extract all its fields
+in one call. For example:
+
+User:
+From Karachi to Istanbul, September 10, 2027 for 5 days,
+two travelers, $2,000 total. We like history and food and
+prefer a relaxed pace.
+
+Extract:
+
+{{
+    "origin": "Karachi",
+    "destination": "Istanbul",
+    "start_date": "2027-09-10",
+    "duration_days": 5,
+    "travelers": 2,
+    "budget": 2000,
+    "currency": "USD",
+    "interests": ["history", "food"],
+    "travel_style": "relaxed"
 }}
 
 ==================================================
@@ -952,6 +984,8 @@ Python application logic decides what happens next.
         result,
     ) -> dict:
 
+        extracted = {}
+
         for item in result.new_items:
 
             if not hasattr(
@@ -982,14 +1016,13 @@ Python application logic decides what happens next.
                 dict,
             ):
 
-                return (
-                    ConversationService
-                    ._filter_trip_fields(
+                extracted.update(
+                    ConversationService._filter_trip_fields(
                         data
                     )
                 )
 
-        return {}
+        return extracted
 
     @staticmethod
     def _filter_trip_fields(
