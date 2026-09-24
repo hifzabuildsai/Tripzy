@@ -327,28 +327,35 @@ export function useStickerWorld(
   useEffect(() => {
     /*
      * The first server render and first client render both contain
-     * an empty sticker layer. Once mounted, initialize the random
-     * living world using the real viewport.
+     * an empty sticker layer. Initialize the random living world
+     * from a browser callback after mount so hydration stays
+     * deterministic without synchronously setting state in the
+     * effect body.
      */
-    const initialMode =
-      getViewportMode(
-        window.innerWidth,
+    const initializeFrame =
+      window.requestAnimationFrame(
+        () => {
+          const initialMode =
+            getViewportMode(
+              window.innerWidth,
+            );
+
+          viewportModeRef.current =
+            initialMode;
+
+          setViewportMode(
+            initialMode,
+          );
+
+          setActiveStickers(
+            createInitialWorld(
+              universalStickers,
+              destinationStickers,
+              initialMode,
+            ),
+          );
+        },
       );
-
-    viewportModeRef.current =
-      initialMode;
-
-    setViewportMode(
-      initialMode,
-    );
-
-    setActiveStickers(
-      createInitialWorld(
-        universalStickers,
-        destinationStickers,
-        initialMode,
-      ),
-    );
 
     const updateViewport =
       () => {
@@ -386,6 +393,10 @@ export function useStickerWorld(
     );
 
     return () => {
+      window.cancelAnimationFrame(
+        initializeFrame,
+      );
+
       window.removeEventListener(
         "resize",
         updateViewport,
