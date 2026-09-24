@@ -3,10 +3,21 @@ import { describe, expect, it } from "vitest";
 
 import DestinationResearchView from "@/components/results/DestinationResearchView";
 import ItineraryView from "@/components/results/ItineraryView";
+import StickerWorld from "@/components/stickers/StickerWorld";
 import { buildPreviewState } from "@/data/demo-trip";
 import { applyMissionMessage, buildClarification, EMPTY_TRIP_REQUEST, getMissingRequirements, mapStatusToExecution } from "@/lib/mission-intake";
 
 const RICH_MISSION = "I want to travel from Karachi to Seoul around April 2027 for 6 days with my sister. Budget around $2,500. We love food, culture, shopping and cafés, and we don’t want a rushed itinerary.";
+
+describe("sticker world hydration", () => {
+  it("keeps the server render deterministic before browser-only randomization", () => {
+    const first = renderToStaticMarkup(<StickerWorld />);
+    const second = renderToStaticMarkup(<StickerWorld />);
+
+    expect(first).toBe(second);
+    expect(first).not.toContain("<img");
+  });
+});
 
 describe("mission intake", () => {
   it("renders a rich mission as structured application state", () => {

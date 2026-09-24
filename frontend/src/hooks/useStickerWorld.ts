@@ -311,19 +311,45 @@ export function useStickerWorld(
       "desktop",
     );
 
+  /*
+   * Keep SSR and the hydrating client deterministic.
+   * Random sticker selection, positions and motion are created
+   * only after the component mounts in the browser.
+   */
   const [
     activeStickers,
     setActiveStickers,
   ] =
     useState<ActiveSticker[]>(
-      () => createInitialWorld(
-        universalStickers,
-        destinationStickers,
-        "desktop",
-      ),
+      [],
     );
 
   useEffect(() => {
+    /*
+     * The first server render and first client render both contain
+     * an empty sticker layer. Once mounted, initialize the random
+     * living world using the real viewport.
+     */
+    const initialMode =
+      getViewportMode(
+        window.innerWidth,
+      );
+
+    viewportModeRef.current =
+      initialMode;
+
+    setViewportMode(
+      initialMode,
+    );
+
+    setActiveStickers(
+      createInitialWorld(
+        universalStickers,
+        destinationStickers,
+        initialMode,
+      ),
+    );
+
     const updateViewport =
       () => {
         const nextMode =
@@ -331,13 +357,28 @@ export function useStickerWorld(
             window.innerWidth,
           );
 
-        if (viewportModeRef.current === nextMode) return;
-        viewportModeRef.current = nextMode;
-        setViewportMode(nextMode);
-        setActiveStickers(createInitialWorld(universalStickers, destinationStickers, nextMode));
-      };
+        if (
+          viewportModeRef.current ===
+          nextMode
+        ) {
+          return;
+        }
 
-    const frame = requestAnimationFrame(updateViewport);
+        viewportModeRef.current =
+          nextMode;
+
+        setViewportMode(
+          nextMode,
+        );
+
+        setActiveStickers(
+          createInitialWorld(
+            universalStickers,
+            destinationStickers,
+            nextMode,
+          ),
+        );
+      };
 
     window.addEventListener(
       "resize",
@@ -345,13 +386,15 @@ export function useStickerWorld(
     );
 
     return () => {
-      cancelAnimationFrame(frame);
       window.removeEventListener(
         "resize",
         updateViewport,
       );
     };
-  }, [universalStickers, destinationStickers]);
+  }, [
+    universalStickers,
+    destinationStickers,
+  ]);
 
   const availableSlots =
     useMemo(
