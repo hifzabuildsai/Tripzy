@@ -27,10 +27,10 @@ def extract_trip_request(
       dates in YYYY-MM-DD format.
 
     - If the user gives a calendar date without enough
-      information to determine the year, store the original
+      information to determine an exact date, store the original
       expression in start_date_text or end_date_text instead.
 
-    - Never invent a year.
+    - Never invent a day or year.
 
     Example:
 
@@ -43,6 +43,18 @@ def extract_trip_request(
     NOT:
 
         start_date="2026-09-10"
+
+    Example:
+
+        "September 2027"
+
+    becomes:
+
+        start_date_text="September 2027"
+
+    NOT:
+
+        start_date="2027-09-01"
 
     Example:
 

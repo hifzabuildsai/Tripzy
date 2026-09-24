@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime
+from datetime import date
 
 from agents import Runner
 
@@ -11,6 +11,10 @@ from app.models.itinerary import Itinerary
 from app.models.research import DestinationResearch
 from app.models.state import TripState
 from app.services.activity_research import ActivityResearchService
+from app.services.date_semantics import (
+    extract_explicit_day,
+    parse_partial_date_text,
+)
 from app.services.flight_research import FlightResearchService
 from app.services.hotel_research import HotelResearchService
 from app.services.itinerary_planning import ItineraryPlannerService
@@ -128,6 +132,45 @@ class ConversationService:
 
                 # The same message may also contain travelers, budget,
                 # or corrections. Continue through extraction.
+                current_request = (
+                    self.trip_manager.get_state()
+                    .request.model_dump()
+                )
+                missing_information = (
+                    self.trip_manager.get_missing_information()
+                )
+
+        # -----------------------------------------------------
+        # MISSING DATE DAY
+        # -----------------------------------------------------
+
+        if "start_date_day" in missing_information:
+
+            resolved = self._resolve_start_date_day(
+                user_message=user_message,
+            )
+
+            if resolved:
+
+                print(
+                    "\n📅 RESOLVED TRAVEL DATE"
+                )
+
+                print(
+                    json.dumps(
+                        {
+                            "start_date": resolved,
+                        },
+                        indent=2,
+                    )
+                )
+
+                self.trip_manager.update_request_fields(
+                    start_date=resolved,
+                )
+
+                # Preserve the existing behavior where one reply can also
+                # contain other fields or explicit corrections.
                 current_request = (
                     self.trip_manager.get_state()
                     .request.model_dump()
@@ -400,6 +443,24 @@ Extract:
 
 RULE 3:
 
+If the user provides a month and year but NO DAY, preserve the
+expression in start_date_text. DO NOT invent a day.
+
+Example:
+
+User:
+September 2027
+
+Extract:
+
+{{
+    "start_date_text": "September 2027"
+}}
+
+--------------------------------------------------
+
+RULE 4:
+
 If the user gives a date without a year together with a
 duration, preserve both.
 
@@ -417,7 +478,7 @@ Extract:
 
 --------------------------------------------------
 
-RULE 4:
+RULE 5:
 
 Relative dates may be resolved using today's date.
 
@@ -427,13 +488,13 @@ Today is:
 
 --------------------------------------------------
 
-RULE 5:
+RULE 6:
 
 Never silently convert an ambiguous date into a complete date.
 
 --------------------------------------------------
 
-RULE 6:
+RULE 7:
 
 Extract only dates explicitly stated by the user.
 
@@ -890,23 +951,69 @@ Python application logic decides what happens next.
         if year is None:
             return None
 
-        month_day = self._parse_month_day(
+        partial_date = parse_partial_date_text(
             date_text
         )
 
-        if month_day is None:
+        if (
+            partial_date is None
+            or partial_date.day is None
+            or partial_date.year is not None
+        ):
             return None
-
-        month, day = month_day
 
         try:
 
             resolved_date = date(
                 year,
-                month,
-                day,
+                partial_date.month,
+                partial_date.day,
             )
 
+        except ValueError:
+            return None
+
+        return resolved_date.isoformat()
+
+    def _resolve_start_date_day(
+        self,
+        user_message: str,
+    ) -> str | None:
+
+        date_text = (
+            self.trip_manager
+            .get_state()
+            .request.start_date_text
+        )
+
+        if not date_text:
+            return None
+
+        partial_date = parse_partial_date_text(
+            date_text
+        )
+
+        if (
+            partial_date is None
+            or partial_date.year is None
+            or partial_date.day is not None
+        ):
+            return None
+
+        day = extract_explicit_day(
+            user_message,
+            expected_month=partial_date.month,
+        )
+
+        if day is None:
+            return None
+
+        try:
+            resolved_date = date(
+                partial_date.year,
+                partial_date.month,
+                day,
+            )
         except ValueError:
             return None
 
@@ -935,43 +1042,6 @@ Python application logic decides what happens next.
 
                 if 1900 <= year <= 2200:
                     return year
-
-        return None
-
-    @staticmethod
-    def _parse_month_day(
-        date_text: str,
-    ) -> tuple[int, int] | None:
-
-        formats = (
-            "%B %d",
-            "%b %d",
-            "%d %B",
-            "%d %b",
-        )
-
-        cleaned = (
-            date_text
-            .strip()
-            .replace(",", "")
-        )
-
-        for date_format in formats:
-
-            try:
-
-                parsed = datetime.strptime(
-                    cleaned,
-                    date_format,
-                )
-
-                return (
-                    parsed.month,
-                    parsed.day,
-                )
-
-            except ValueError:
-                continue
 
         return None
 

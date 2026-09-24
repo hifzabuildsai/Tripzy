@@ -154,6 +154,10 @@ async def send_trip_message(
             status=(
                 session.trip_manager.get_status()
             ),
+            missing_information=(
+                session.trip_manager
+                .get_missing_information()
+            ),
         )
 
     except HTTPException:
@@ -195,6 +199,14 @@ async def get_trip(
         return TripStateResponse(
             trip_id=trip_id,
             state=session.trip_manager.get_state(),
+            missing_information=(
+                session.trip_manager
+                .get_missing_information()
+            ),
+            clarification=(
+                session.trip_manager
+                .get_next_question()
+            ),
         )
 
     except HTTPException:

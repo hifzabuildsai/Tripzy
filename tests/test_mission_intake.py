@@ -70,6 +70,115 @@ def test_mission_extracts_multiple_fields_and_reasks_only_missing(monkeypatch):
     assert "extract every" in prompts[0]
 
 
+def test_month_and_year_mission_asks_for_day_not_year(monkeypatch):
+    service = ConversationService()
+    mission = (
+        "Plan 5 days from Karachi to Istanbul in September 2027 "
+        "for two travelers, around $2,000. We love history and "
+        "food and don't want a rushed itinerary."
+    )
+
+    async def fake_run(agent, prompt):
+        return SimpleNamespace(new_items=[
+            SimpleNamespace(output=json.dumps({
+                "origin": "Karachi",
+                "destination": "Istanbul",
+                "start_date_text": "September 2027",
+                "duration_days": 5,
+                "travelers": 2,
+                "budget": 2000,
+                "currency": "USD",
+                "interests": ["history", "food"],
+                "travel_style": "relaxed",
+            })),
+        ])
+
+    monkeypatch.setattr("app.services.conversation.Runner.run", fake_run)
+
+    answer = asyncio.run(service.process_message(mission))
+    request = service.trip_manager.get_state().request
+
+    assert request.start_date is None
+    assert request.start_date_text == "September 2027"
+    assert request.origin == "Karachi"
+    assert request.destination == "Istanbul"
+    assert request.duration_days == 5
+    assert request.travelers == 2
+    assert request.budget == 2000
+    assert request.interests == ["history", "food"]
+    assert request.travel_style == "relaxed"
+    assert service.trip_manager.get_missing_information() == [
+        "start_date_day",
+    ]
+    assert "day of the month" in answer
+    assert "year for your travel start date" not in answer
+
+
+def test_day_reply_completes_preserved_month_and_year(monkeypatch):
+    state = TripState(request=TripRequest(
+        origin="Karachi",
+        destination="Istanbul",
+        start_date_text="September 2027",
+        duration_days=5,
+        travelers=2,
+        budget=2000,
+    ))
+    service = ConversationService(state=state)
+
+    async def fake_run(agent, prompt):
+        return SimpleNamespace(new_items=[])
+
+    async def stop_before_research():
+        return "ready" if service.trip_manager.is_complete() else "incomplete"
+
+    monkeypatch.setattr("app.services.conversation.Runner.run", fake_run)
+    monkeypatch.setattr(service, "_continue_workflow", stop_before_research)
+
+    answer = asyncio.run(service.process_message("the 10th"))
+
+    assert answer == "ready"
+    assert service.trip_manager.get_state().request.start_date == (
+        "2027-09-10"
+    )
+
+
+def test_day_reply_with_other_details_preserves_known_year(monkeypatch):
+    state = TripState(request=TripRequest(
+        origin="Karachi",
+        destination="Istanbul",
+        start_date_text="September 2027",
+        duration_days=5,
+        travelers=2,
+        budget=2000,
+    ))
+    service = ConversationService(state=state)
+    prompts = []
+
+    async def fake_run(agent, prompt):
+        prompts.append(prompt)
+        return SimpleNamespace(new_items=[
+            SimpleNamespace(output=json.dumps({
+                "interests": ["museums"],
+            })),
+        ])
+
+    async def stop_before_research():
+        return "ready" if service.trip_manager.is_complete() else "incomplete"
+
+    monkeypatch.setattr("app.services.conversation.Runner.run", fake_run)
+    monkeypatch.setattr(service, "_continue_workflow", stop_before_research)
+
+    answer = asyncio.run(service.process_message(
+        "September 10, and add museums"
+    ))
+    request = service.trip_manager.get_state().request
+
+    assert answer == "ready"
+    assert request.start_date == "2027-09-10"
+    assert request.interests == ["museums"]
+    assert '"start_date": "2027-09-10"' in prompts[0]
+
+
 def test_year_reply_also_extracts_other_fields(monkeypatch):
     state = TripState(request=TripRequest(
         origin="Karachi", destination="Istanbul",

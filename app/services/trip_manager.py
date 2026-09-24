@@ -15,6 +15,9 @@ from app.models.hotel import (
 from app.models.itinerary import Itinerary
 from app.models.research import DestinationResearch
 from app.models.state import TripState
+from app.services.date_semantics import (
+    get_missing_start_date_field,
+)
 
 
 class TripManager:
@@ -119,15 +122,11 @@ class TripManager:
             )
 
         if not request.start_date:
-
-            if request.start_date_text:
-                missing.append(
-                    "start_date_year"
+            missing.append(
+                get_missing_start_date_field(
+                    request.start_date_text
                 )
-            else:
-                missing.append(
-                    "start_date"
-                )
+            )
 
         if (
             not request.end_date
@@ -180,6 +179,7 @@ class TripManager:
             "destination": "where you'd like to go",
             "start_date": "your travel start date (including the year)",
             "start_date_year": "the year for your travel start date",
+            "start_date_day": "the day of the month for your travel start date",
             "end_date_or_duration": "your end date or trip duration",
             "travelers": "how many people are travelling",
             "budget": "your approximate total budget and currency",

@@ -1,7 +1,10 @@
+import json
+
 from fastapi.testclient import TestClient
 
 import app.api as api_module
 from app.models.state import TripState
+from app.models.trip import TripRequest
 from app.services.in_memory_trip_repository import (
     InMemoryTripRepository,
 )
@@ -51,6 +54,48 @@ class FailingTripRepository(TripRepository):
         raise TripRepositoryError(
             "Persistence unavailable."
         )
+
+
+class JsonRoundTripTripRepository(TripRepository):
+    """Repository double that serializes state like JSONB persistence."""
+
+    def __init__(self) -> None:
+        self._trips: dict[str, dict] = {}
+
+    def create(
+        self,
+        trip_id: str,
+        state: TripState,
+    ) -> None:
+        self._trips[trip_id] = json.loads(
+            state.model_dump_json()
+        )
+
+    def get(
+        self,
+        trip_id: str,
+    ) -> TripState | None:
+        persisted = self._trips.get(trip_id)
+
+        if persisted is None:
+            return None
+
+        return TripState.model_validate(
+            json.loads(json.dumps(persisted))
+        )
+
+    def save(
+        self,
+        trip_id: str,
+        state: TripState,
+    ) -> None:
+        self.create(trip_id, state)
+
+    def exists(
+        self,
+        trip_id: str,
+    ) -> bool:
+        return trip_id in self._trips
 
 
 def build_client() -> TestClient:
@@ -121,6 +166,99 @@ def test_created_trip_can_be_read() -> None:
     assert body["state"]["status"] == "collecting"
     assert body["state"]["request"]["origin"] is None
     assert body["state"]["request"]["destination"] is None
+    assert body["missing_information"] == [
+        "origin",
+        "destination",
+        "start_date",
+        "end_date_or_duration",
+        "travelers",
+        "budget",
+    ]
+    assert "everything in one message" in body["clarification"]
+
+
+def test_message_response_includes_structured_missing_information(
+    monkeypatch,
+) -> None:
+    client = build_client()
+
+    async def fake_process_message(
+        conversation,
+        user_message: str,
+    ) -> str:
+        assert user_message == "I want 5 days in Istanbul."
+        conversation.trip_manager.update_request_fields(
+            destination="Istanbul",
+            duration_days=5,
+        )
+        return conversation.trip_manager.get_next_question()
+
+    monkeypatch.setattr(
+        "app.services.conversation.ConversationService.process_message",
+        fake_process_message,
+    )
+
+    create_response = client.post("/trips")
+    trip_id = create_response.json()["trip_id"]
+
+    response = client.post(
+        f"/trips/{trip_id}/messages",
+        json={
+            "message": "I want 5 days in Istanbul.",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["trip_id"] == trip_id
+    assert body["status"] == "collecting"
+    assert body["missing_information"] == [
+        "origin",
+        "start_date",
+        "travelers",
+        "budget",
+    ]
+    assert "everything in one message" in body["response"]
+
+    restored = client.get(f"/trips/{trip_id}").json()
+    assert restored["state"]["request"]["destination"] == "Istanbul"
+    assert restored["state"]["request"]["duration_days"] == 5
+    assert restored["missing_information"] == body["missing_information"]
+
+
+def test_month_year_metadata_survives_repository_round_trip() -> None:
+    repository = JsonRoundTripTripRepository()
+    trip_id = "trip-with-month-and-year"
+    repository.create(
+        trip_id,
+        TripState(request=TripRequest(
+            origin="Karachi",
+            destination="Istanbul",
+            start_date_text="September 2027",
+            duration_days=5,
+            travelers=2,
+            budget=2000,
+            currency="USD",
+            interests=["history", "food"],
+            travel_style="relaxed",
+        )),
+    )
+    api_module.session_registry = SessionRegistry(
+        repository=repository
+    )
+    client = TestClient(api_module.app)
+
+    response = client.get(f"/trips/{trip_id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["state"]["request"]["start_date"] is None
+    assert body["state"]["request"]["start_date_text"] == (
+        "September 2027"
+    )
+    assert body["missing_information"] == ["start_date_day"]
+    assert "day of the month" in body["clarification"]
+    assert "year for your travel start date" not in body["clarification"]
 
 
 def test_missing_trip_returns_404() -> None:

@@ -8,9 +8,10 @@ import {
 } from "react";
 
 type TripComposerProps = {
-  onSubmit?: (message: string) => void;
+  onSubmit?: (message: string) => void | boolean | Promise<void | boolean>;
   disabled?: boolean;
-  mode?: "mission" | "revision";
+  mode?: "mission" | "clarification";
+  initialMessage?: string;
 };
 
 const EXAMPLES = [
@@ -22,8 +23,10 @@ export default function TripComposer({
   onSubmit,
   disabled = false,
   mode = "mission",
+  initialMessage = "",
 }: TripComposerProps) {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage);
+  const [submitting, setSubmitting] = useState(false);
   const textareaRef =
     useRef<HTMLTextAreaElement>(null);
 
@@ -42,25 +45,33 @@ export default function TripComposer({
     )}px`;
   };
 
-  const submitMessage = () => {
-    const cleanedMessage = message.trim();
-
-    if (!cleanedMessage || disabled) {
+  const submitMessage = async () => {
+    if (!message.trim() || disabled || submitting) {
       return;
     }
 
-    onSubmit?.(cleanedMessage);
+    setSubmitting(true);
 
-    setMessage("");
+    try {
+      const accepted = await onSubmit?.(message);
 
-    requestAnimationFrame(() => {
-      const textarea = textareaRef.current;
-
-      if (textarea) {
-        textarea.style.height = "auto";
-        textarea.focus();
+      if (accepted === false) {
+        return;
       }
-    });
+
+      setMessage("");
+
+      requestAnimationFrame(() => {
+        const textarea = textareaRef.current;
+
+        if (textarea) {
+          textarea.style.height = "auto";
+          textarea.focus();
+        }
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSubmit = (
@@ -92,7 +103,7 @@ export default function TripComposer({
   };
 
   const canSubmit =
-    message.trim().length > 0 && !disabled;
+    message.trim().length > 0 && !disabled && !submitting;
 
   return (
     <div className="mx-auto w-full max-w-[760px]">
@@ -119,10 +130,10 @@ export default function TripComposer({
           <textarea
             ref={textareaRef}
             value={message}
-            disabled={disabled}
+            disabled={disabled || submitting}
             rows={mode === "mission" ? 3 : 1}
             aria-label="Describe your trip"
-            placeholder={mode === "mission" ? "Tell me the whole trip — where, when, who’s going, your budget, pace and what you love…" : "Change the destination, budget, pace, interests…"}
+            placeholder={mode === "mission" ? "Tell me the whole trip — where, when, who’s going, your budget, pace and what you love…" : "Share all the missing details in one message…"}
             onChange={(event) => {
               setMessage(event.target.value);
 
@@ -154,7 +165,7 @@ export default function TripComposer({
           <button
             type="submit"
             disabled={!canSubmit}
-            aria-label={mode === "mission" ? "Give Tripzy this mission" : "Update trip brief"}
+            aria-label={mode === "mission" ? "Give Tripzy this mission" : "Send missing trip details"}
             className={[
               "mb-0.5",
               "flex",
@@ -239,7 +250,7 @@ export default function TripComposer({
       </div>}
 
       <p className="mt-3 text-center text-[11px] text-neutral-400">
-        {mode === "mission" ? "Write naturally — one detailed message works best" : "Revisions update the current trip and preserve everything else"}
+        {mode === "mission" ? "Write naturally — one detailed message works best" : "Answer naturally — include every missing detail you know"}
       </p>
     </div>
   );

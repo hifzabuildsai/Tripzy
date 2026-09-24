@@ -33,6 +33,9 @@ class TripMessageResponse(BaseModel):
     trip_id: str
     response: str
     status: str
+    missing_information: list[str] = Field(
+        default_factory=list,
+    )
 
 
 class TripStateResponse(BaseModel):
@@ -43,3 +46,7 @@ class TripStateResponse(BaseModel):
 
     trip_id: str
     state: TripState
+    missing_information: list[str] = Field(
+        default_factory=list,
+    )
+    clarification: str | None = None

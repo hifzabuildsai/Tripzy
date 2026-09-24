@@ -25,14 +25,18 @@ export default function TripBrief({ request, compact = false }: Props) {
         </div>
         <span className="rounded-full bg-[#eef3e8] px-3 py-1 text-xs font-medium text-[#466047]">Structured</span>
       </div>
-      <dl className="grid grid-cols-2 gap-x-5 gap-y-5 sm:grid-cols-3">
-        {details.map(({ label, value }) => (
-          <div key={label}>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.13em] text-stone-400">{label}</dt>
-            <dd className="mt-1 text-sm font-medium leading-5 text-stone-800">{value}</dd>
-          </div>
-        ))}
-      </dl>
+      {details.length > 0 ? (
+        <dl className="grid grid-cols-2 gap-x-5 gap-y-5 sm:grid-cols-3">
+          {details.map(({ label, value }) => (
+            <div key={label}>
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.13em] text-stone-400">{label}</dt>
+              <dd className="mt-1 text-sm font-medium leading-5 text-stone-800">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="text-sm leading-6 text-stone-500">No trip details have been structured yet.</p>
+      )}
       {request.interests.length > 0 && (
         <div className="mt-6 flex flex-wrap gap-2 border-t border-stone-900/6 pt-5" aria-label="Interests">
           {request.interests.map((interest) => <span key={interest} className="detail-pill">{interest}</span>)}

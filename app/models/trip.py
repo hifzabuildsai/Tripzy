@@ -11,7 +11,7 @@ class TripRequest(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
 
-    # Used when the user gives month/day but no year.
+    # Preserves a partial date when either day or year is missing.
     start_date_text: Optional[str] = None
     end_date_text: Optional[str] = None
 

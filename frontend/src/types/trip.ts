@@ -78,5 +78,25 @@ export type TripState = {
 };
 export type MissingRequirement =
   | "origin" | "destination" | "start_date" | "start_date_year"
+  | "start_date_day"
   | "end_date_or_duration" | "travelers" | "budget";
 export type WorkspaceSection = "brief" | "research" | "options" | "itinerary";
+
+export type CreateTripResponse = {
+  trip_id: string;
+  status: TripStatus;
+};
+
+export type TripMessageResponse = {
+  trip_id: string;
+  response: string;
+  status: TripStatus;
+  missing_information: MissingRequirement[];
+};
+
+export type TripStateResponse = {
+  trip_id: string;
+  state: TripState;
+  missing_information: MissingRequirement[];
+  clarification: string | null;
+};

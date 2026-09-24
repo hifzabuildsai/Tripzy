@@ -1,5 +1,5 @@
-import TripzyShell from "@/components/tripzy/TripzyShell";
+import NewTripLanding from "@/components/tripzy/NewTripLanding";
 
 export default function Home() {
-  return <TripzyShell />;
+  return <NewTripLanding />;
 }
