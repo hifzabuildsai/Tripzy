@@ -15,6 +15,63 @@ body {
   background: #faf8f4;
   color: #171717;
   font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #eacdb9;
+  color: #2c2019;
+}
+
+.glass-panel {
+  border: 1px solid rgb(0 0 0 / 0.06);
+  border-radius: 26px;
+  background: rgb(255 255 255 / 0.72);
+  box-shadow: 0 20px 60px rgb(70 52 35 / 0.07);
+  backdrop-filter: blur(18px);
+}
+
+.eyebrow {
+  color: #a96542;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.section-title {
+  margin-top: 0.55rem;
+  color: #1c1917;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.section-copy {
+  margin-top: 1rem;
+  color: #78716c;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.detail-pill {
+  border: 1px solid rgb(0 0 0 / 0.06);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.7);
+  padding: 0.35rem 0.7rem;
+  color: #57534e;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 button,

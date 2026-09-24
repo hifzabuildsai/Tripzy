@@ -14,6 +14,7 @@ import {
 
 type DestinationTransitionProps = {
   destination?: string;
+  quiet?: boolean;
 };
 
 function getAtmosphere(
@@ -40,6 +41,7 @@ function getAtmosphere(
 
 export default function DestinationTransition({
   destination,
+  quiet = false,
 }: DestinationTransitionProps) {
   const world =
     resolveStickerWorld(
@@ -50,7 +52,7 @@ export default function DestinationTransition({
     world.id !== "universal";
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+    <div className={`pointer-events-none absolute inset-0 z-0 overflow-hidden transition-opacity duration-700 ${quiet ? "opacity-25" : "opacity-100"}`}>
       <AnimatePresence
         initial={false}
         mode="sync"

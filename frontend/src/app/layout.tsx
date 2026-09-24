@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tripzy",
-  description: "AI-powered travel planning, built around your journey.",
+  title: "Tripzy — Give me the trip",
+  description: "An AI travel-planning agent that takes your mission from idea to researched itinerary.",
 };
 
 export default function RootLayout({

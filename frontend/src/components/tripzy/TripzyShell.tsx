@@ -1,180 +1,89 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 
 import DestinationTransition from "@/components/destination/DestinationTransition";
+import ActivitiesView from "@/components/results/ActivitiesView";
+import DestinationResearchView from "@/components/results/DestinationResearchView";
+import ItineraryView from "@/components/results/ItineraryView";
+import TravelOptionsView from "@/components/results/TravelOptionsView";
+import PlanningScope from "@/components/tripzy/PlanningScope";
+import TripBrief from "@/components/tripzy/TripBrief";
 import TripComposer from "@/components/tripzy/TripComposer";
-import TripSignature from "@/components/tripzy/TripSignature";
-
-import type {
-  TripIntent,
-  TripSeason,
-} from "@/types/trip";
-
-function extractSeason(
-  message: string,
-): TripSeason | undefined {
-  const lower = message.toLowerCase();
-
-  if (lower.includes("spring")) {
-    return "spring";
-  }
-
-  if (lower.includes("summer")) {
-    return "summer";
-  }
-
-  if (
-    lower.includes("autumn") ||
-    lower.includes("fall")
-  ) {
-    return "autumn";
-  }
-
-  if (lower.includes("winter")) {
-    return "winter";
-  }
-
-  return undefined;
-}
-
-function extractDuration(
-  message: string,
-): number | undefined {
-  const match = message.match(
-    /\b(\d{1,2})\s*(?:day|days)\b/i,
-  );
-
-  if (!match) {
-    return undefined;
-  }
-
-  const duration = Number(match[1]);
-
-  if (
-    Number.isNaN(duration) ||
-    duration < 1 ||
-    duration > 60
-  ) {
-    return undefined;
-  }
-
-  return duration;
-}
-
-function extractDestination(
-  message: string,
-): Pick<
-  TripIntent,
-  "destination" | "country"
-> {
-  const lower = message
-    .trim()
-    .toLowerCase();
-
-  if (
-    lower.includes("seoul") ||
-    lower.includes("south korea") ||
-    lower.includes("korea")
-  ) {
-    return {
-      destination: "Seoul",
-      country: "South Korea",
-    };
-  }
-
-  if (
-    lower.includes("istanbul") ||
-    lower.includes("turkey") ||
-    lower.includes("turkiye") ||
-    lower.includes("türkiye")
-  ) {
-    return {
-      destination: "Istanbul",
-      country: "Türkiye",
-    };
-  }
-
-  return {};
-}
-
-function createLocalTripIntent(
-  message: string,
-): TripIntent {
-  return {
-    rawText: message,
-    ...extractDestination(message),
-    durationDays: extractDuration(message),
-    season: extractSeason(message),
-  };
-}
+import WorkspaceNav from "@/components/tripzy/WorkspaceNav";
+import { buildPreviewState } from "@/data/demo-trip";
+import { applyMissionMessage, buildClarification, EMPTY_TRIP_REQUEST, getMissingRequirements } from "@/lib/mission-intake";
+import type { TripRequest, WorkspaceSection } from "@/types/trip";
 
 export default function TripzyShell() {
-  const [tripIntent, setTripIntent] =
-    useState<TripIntent | null>(null);
+  const [request, setRequest] = useState<TripRequest>(EMPTY_TRIP_REQUEST);
+  const [missionStarted, setMissionStarted] = useState(false);
+  const [activeSection, setActiveSection] = useState<WorkspaceSection>("brief");
 
-  const handleTripSubmit = (
-    message: string,
-  ) => {
-    setTripIntent(
-      createLocalTripIntent(message),
-    );
+  const missing = getMissingRequirements(request);
+  const complete = missionStarted && missing.length === 0;
+  const clarification = missionStarted ? buildClarification(request) : null;
+  const preview = useMemo(() => complete ? buildPreviewState(request) : null, [complete, request]);
+
+  const handleMessage = (message: string) => {
+    setMissionStarted(true);
+    setRequest((current) => applyMissionMessage(current, message));
   };
 
-  const hasTripStarted =
-    tripIntent !== null;
-
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#faf8f4]">
-      <DestinationTransition
-        destination={
-          tripIntent?.destination
-        }
-      />
+    <main className="relative min-h-screen overflow-x-hidden bg-[#faf8f4]">
+      <DestinationTransition destination={request.destination ?? undefined} quiet={complete} />
 
-      <section className="pointer-events-none relative z-10 flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
-        <div className="pointer-events-auto w-full max-w-3xl text-center">
-          <p className="mb-4 text-xs font-medium uppercase tracking-[0.24em] text-neutral-500 sm:text-sm">
-            Tripzy
-          </p>
+      {!missionStarted ? (
+        <section className="relative z-10 flex min-h-screen items-center justify-center px-5 py-12 sm:px-8">
+          <div className="w-full max-w-4xl text-center">
+            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.26em] text-stone-500">Tripzy</p>
+            <h1 className="text-[46px] font-semibold leading-[0.94] tracking-[-0.052em] text-stone-950 sm:text-7xl lg:text-[82px]">
+              Give me the trip.<br /><span className="font-serif font-normal italic text-[#b66f49]">I’ll take it from here.</span>
+            </h1>
+            <p className="mx-auto mb-9 mt-6 max-w-xl text-sm leading-6 text-stone-500 sm:text-base sm:leading-7">Share the whole mission in your own words. Tripzy turns it into a structured plan, researches the journey and builds the days.</p>
+            <TripComposer onSubmit={handleMessage} />
+          </div>
+        </section>
+      ) : !complete ? (
+        <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl items-center px-5 py-12 sm:px-8">
+          <div className="grid w-full gap-6 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+            <div>
+              <button type="button" onClick={() => { setMissionStarted(false); setRequest(EMPTY_TRIP_REQUEST); }} className="mb-8 text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Tripzy</button>
+              <p className="eyebrow">One clarification</p>
+              <h1 className="mt-3 text-4xl font-semibold leading-[1] tracking-[-0.045em] text-stone-950 sm:text-5xl">I understand the shape of it.</h1>
+              <p className="mt-5 max-w-xl text-base leading-7 text-stone-600">{clarification}</p>
+              <div className="mt-7"><TripComposer mode="revision" onSubmit={handleMessage} /></div>
+            </div>
+            <TripBrief request={request} />
+          </div>
+        </section>
+      ) : preview ? (
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-5 pb-20 pt-6 sm:px-8 lg:px-10">
+          <header className="mb-7 flex items-center justify-between">
+            <button type="button" onClick={() => { setMissionStarted(false); setRequest(EMPTY_TRIP_REQUEST); setActiveSection("brief"); }} className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-700">Tripzy</button>
+            <p className="hidden text-xs text-stone-400 sm:block">Give me the trip. I’ll take it from here.</p>
+          </header>
+          <WorkspaceNav active={activeSection} onChange={setActiveSection} />
 
-          <h1 className="text-[42px] font-semibold leading-[0.98] tracking-[-0.045em] text-neutral-900 sm:text-6xl lg:text-[68px]">
-            {tripIntent?.destination ? (
-              <>
-                Let&apos;s shape your
-                <br />
-                {tripIntent.destination} trip.
-              </>
-            ) : hasTripStarted ? (
-              <>
-                Let&apos;s shape
-                <br />
-                your trip.
-              </>
-            ) : (
-              <>
-                Where do you want
-                <br />
-                to go?
-              </>
-            )}
-          </h1>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={activeSection} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }} className="mt-8">
+              {activeSection === "brief" && <div className="space-y-6"><TripBrief request={request} /><PlanningScope status={preview.status} preview /></div>}
+              {activeSection === "research" && preview.destination_research && <div className="space-y-14"><DestinationResearchView research={preview.destination_research} /><ActivitiesView activities={preview.activity_options} /></div>}
+              {activeSection === "options" && <TravelOptionsView flights={preview.flight_options} hotels={preview.hotel_options} />}
+              {activeSection === "itinerary" && preview.itinerary && <ItineraryView itinerary={preview.itinerary} />}
+            </motion.div>
+          </AnimatePresence>
 
-          <p className="mx-auto mb-8 mt-5 max-w-md text-sm leading-6 text-neutral-500 sm:text-base sm:leading-7">
-            {hasTripStarted
-              ? "Your idea is taking shape. Keep adding the details that matter to you."
-              : "Tell me what kind of trip you're dreaming about."}
-          </p>
-
-          <TripComposer
-            onSubmit={handleTripSubmit}
-          />
-
-          <TripSignature
-            intent={tripIntent}
-          />
+          <section aria-labelledby="revise-title" className="mx-auto mt-16 max-w-3xl border-t border-stone-900/8 pt-9 text-center">
+            <p className="eyebrow">Keep shaping it</p>
+            <h2 id="revise-title" className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-900">Change your mind naturally.</h2>
+            <p className="mx-auto mb-5 mt-2 max-w-lg text-sm leading-6 text-stone-500">Try: “Actually make it Istanbul, same dates, raise the budget to $3,000, and focus more on food.”</p>
+            <TripComposer mode="revision" onSubmit={handleMessage} />
+          </section>
         </div>
-      </section>
+      ) : null}
     </main>
   );
 }

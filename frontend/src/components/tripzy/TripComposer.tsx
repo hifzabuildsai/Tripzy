@@ -10,18 +10,18 @@ import {
 type TripComposerProps = {
   onSubmit?: (message: string) => void;
   disabled?: boolean;
+  mode?: "mission" | "revision";
 };
 
 const EXAMPLES = [
-  "Seoul in spring",
-  "Istanbul for food",
-  "A quiet beach escape",
-  "Surprise me",
+  "Karachi to Seoul in April 2027 for 6 days with my sister. $2,500 budget. Food, culture, shopping and cafés — relaxed pace.",
+  "Plan 5 days from Karachi to Istanbul in September 2027 for two travelers, around $2,000. History and food, not rushed.",
 ];
 
 export default function TripComposer({
   onSubmit,
   disabled = false,
+  mode = "mission",
 }: TripComposerProps) {
   const [message, setMessage] = useState("");
   const textareaRef =
@@ -95,13 +95,13 @@ export default function TripComposer({
     message.trim().length > 0 && !disabled;
 
   return (
-    <div className="mx-auto w-full max-w-[680px]">
+    <div className="mx-auto w-full max-w-[760px]">
       <form
         onSubmit={handleSubmit}
         className={[
           "group",
           "relative",
-          "rounded-[28px]",
+          "rounded-[26px]",
           "border",
           "border-black/[0.07]",
           "bg-white/75",
@@ -120,9 +120,9 @@ export default function TripComposer({
             ref={textareaRef}
             value={message}
             disabled={disabled}
-            rows={1}
+            rows={mode === "mission" ? 3 : 1}
             aria-label="Describe your trip"
-            placeholder="Tell Tripzy what you're dreaming about..."
+            placeholder={mode === "mission" ? "Tell me the whole trip — where, when, who’s going, your budget, pace and what you love…" : "Change the destination, budget, pace, interests…"}
             onChange={(event) => {
               setMessage(event.target.value);
 
@@ -132,8 +132,8 @@ export default function TripComposer({
             }}
             onKeyDown={handleKeyDown}
             className={[
-              "min-h-[54px]",
-              "max-h-36",
+              mode === "mission" ? "min-h-[104px]" : "min-h-[54px]",
+              "max-h-52",
               "flex-1",
               "resize-none",
               "overflow-y-auto",
@@ -154,7 +154,7 @@ export default function TripComposer({
           <button
             type="submit"
             disabled={!canSubmit}
-            aria-label="Start planning trip"
+            aria-label={mode === "mission" ? "Give Tripzy this mission" : "Update trip brief"}
             className={[
               "mb-0.5",
               "flex",
@@ -203,7 +203,7 @@ export default function TripComposer({
         </div>
       </form>
 
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+      {mode === "mission" && <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         <span className="mr-1 text-xs text-neutral-400">
           Try
         </span>
@@ -236,10 +236,10 @@ export default function TripComposer({
             {example}
           </button>
         ))}
-      </div>
+      </div>}
 
       <p className="mt-3 text-center text-[11px] text-neutral-400">
-        Enter to send · Shift + Enter for a new line
+        {mode === "mission" ? "Write naturally — one detailed message works best" : "Revisions update the current trip and preserve everything else"}
       </p>
     </div>
   );

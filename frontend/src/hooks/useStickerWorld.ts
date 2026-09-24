@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -305,12 +306,21 @@ export function useStickerWorld(
       "desktop",
     );
 
+  const viewportModeRef =
+    useRef<ViewportMode>(
+      "desktop",
+    );
+
   const [
     activeStickers,
     setActiveStickers,
   ] =
     useState<ActiveSticker[]>(
-      [],
+      () => createInitialWorld(
+        universalStickers,
+        destinationStickers,
+        "desktop",
+      ),
     );
 
   useEffect(() => {
@@ -321,15 +331,13 @@ export function useStickerWorld(
             window.innerWidth,
           );
 
-        setViewportMode(
-          (currentMode) =>
-            currentMode === nextMode
-              ? currentMode
-              : nextMode,
-        );
+        if (viewportModeRef.current === nextMode) return;
+        viewportModeRef.current = nextMode;
+        setViewportMode(nextMode);
+        setActiveStickers(createInitialWorld(universalStickers, destinationStickers, nextMode));
       };
 
-    updateViewport();
+    const frame = requestAnimationFrame(updateViewport);
 
     window.addEventListener(
       "resize",
@@ -337,26 +345,13 @@ export function useStickerWorld(
     );
 
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener(
         "resize",
         updateViewport,
       );
     };
-  }, []);
-
-  useEffect(() => {
-    setActiveStickers(
-      createInitialWorld(
-        universalStickers,
-        destinationStickers,
-        viewportMode,
-      ),
-    );
-  }, [
-    universalStickers,
-    destinationStickers,
-    viewportMode,
-  ]);
+  }, [universalStickers, destinationStickers]);
 
   const availableSlots =
     useMemo(
