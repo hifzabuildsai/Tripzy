@@ -10,7 +10,7 @@ import {
 type TripComposerProps = {
   onSubmit?: (message: string) => void | boolean | Promise<void | boolean>;
   disabled?: boolean;
-  mode?: "mission" | "clarification";
+  mode?: "mission" | "clarification" | "revision";
   initialMessage?: string;
 };
 
@@ -131,9 +131,13 @@ export default function TripComposer({
             ref={textareaRef}
             value={message}
             disabled={disabled || submitting}
-            rows={mode === "mission" ? 3 : 1}
-            aria-label="Describe your trip"
-            placeholder={mode === "mission" ? "Tell me the whole trip — where, when, who’s going, your budget, pace and what you love…" : "Share all the missing details in one message…"}
+            rows={mode === "mission" ? 3 : mode === "revision" ? 2 : 1}
+            aria-label={mode === "revision" ? "Describe the trip correction" : "Describe your trip"}
+            placeholder={mode === "mission"
+              ? "Tell me the whole trip — where, when, who’s going, your budget, pace and what you love…"
+              : mode === "revision"
+                ? "Make it 8 days, remove shopping and add museums…"
+                : "Share all the missing details in one message…"}
             onChange={(event) => {
               setMessage(event.target.value);
 
@@ -143,7 +147,7 @@ export default function TripComposer({
             }}
             onKeyDown={handleKeyDown}
             className={[
-              mode === "mission" ? "min-h-[104px]" : "min-h-[54px]",
+              mode === "mission" ? "min-h-[104px]" : mode === "revision" ? "min-h-[80px]" : "min-h-[54px]",
               "max-h-52",
               "flex-1",
               "resize-none",
@@ -165,7 +169,11 @@ export default function TripComposer({
           <button
             type="submit"
             disabled={!canSubmit}
-            aria-label={mode === "mission" ? "Give Tripzy this mission" : "Send missing trip details"}
+            aria-label={mode === "mission"
+              ? "Give Tripzy this mission"
+              : mode === "revision"
+                ? "Submit trip correction"
+                : "Send missing trip details"}
             className={[
               "mb-0.5",
               "flex",
@@ -250,7 +258,11 @@ export default function TripComposer({
       </div>}
 
       <p className="mt-3 text-center text-[11px] text-neutral-400">
-        {mode === "mission" ? "Write naturally — one detailed message works best" : "Answer naturally — include every missing detail you know"}
+        {mode === "mission"
+          ? "Write naturally — one detailed message works best"
+          : mode === "revision"
+            ? "Tripzy will keep the same trip and update only what your change affects"
+            : "Answer naturally — include every missing detail you know"}
       </p>
     </div>
   );

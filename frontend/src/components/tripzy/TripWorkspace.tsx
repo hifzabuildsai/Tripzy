@@ -12,6 +12,7 @@ import TravelOptionsView from "@/components/results/TravelOptionsView";
 import PlanningScope from "@/components/tripzy/PlanningScope";
 import TripBrief from "@/components/tripzy/TripBrief";
 import TripComposer from "@/components/tripzy/TripComposer";
+import TripRevisionPanel from "@/components/tripzy/TripRevisionPanel";
 import WorkspaceNav from "@/components/tripzy/WorkspaceNav";
 import {
   EmptyArtifact,
@@ -74,6 +75,8 @@ export default function TripWorkspace({
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [processingMessage, setProcessingMessage] = useState(false);
+  const [processingRevision, setProcessingRevision] = useState(false);
+  const [revisionOpen, setRevisionOpen] = useState(false);
   const [failedMessage, setFailedMessage] = useState<FailedMessage | null>(null);
   const [messageError, setMessageError] = useState<string | null>(null);
   const restoredTripRef = useRef<string | null>(null);
@@ -89,6 +92,11 @@ export default function TripWorkspace({
 
     processingRef.current = true;
     setProcessingMessage(true);
+    const updatingExistingPlan = (
+      baseline.state.itinerary !== null ||
+      baseline.state.destination_research !== null
+    );
+    setProcessingRevision(updatingExistingPlan);
     setMessageError(null);
     setFailedMessage(null);
 
@@ -104,6 +112,7 @@ export default function TripWorkspace({
             ? response.response
             : restored.clarification,
         });
+        setRevisionOpen(false);
         setLoadError(null);
       } catch (caught) {
         setLoadError(userFacingApiError(caught));
@@ -127,6 +136,7 @@ export default function TripWorkspace({
     } finally {
       processingRef.current = false;
       setProcessingMessage(false);
+      setProcessingRevision(false);
     }
   }, [tripId]);
 
@@ -174,6 +184,12 @@ export default function TripWorkspace({
 
     processingRef.current = true;
     setProcessingMessage(true);
+    setProcessingRevision(Boolean(
+      trip && (
+        trip.state.itinerary !== null ||
+        trip.state.destination_research !== null
+      ),
+    ));
     setMessageError(null);
 
     try {
@@ -188,6 +204,7 @@ export default function TripWorkspace({
 
       processingRef.current = false;
       setProcessingMessage(false);
+      setProcessingRevision(false);
       await processMessage(failedMessage.message, current);
     } catch (caught) {
       if (caught instanceof TripzyApiError && caught.code === "not_found") {
@@ -199,6 +216,7 @@ export default function TripWorkspace({
     } finally {
       processingRef.current = false;
       setProcessingMessage(false);
+      setProcessingRevision(false);
     }
   };
 
@@ -208,7 +226,7 @@ export default function TripWorkspace({
     return (
       <main className="relative flex min-h-screen items-center overflow-x-hidden bg-[#faf8f4] px-5 py-12 sm:px-8">
         <DestinationTransition destination={destination} />
-        <div className="relative z-10 w-full"><PlanningPending /></div>
+        <div className="relative z-10 w-full"><PlanningPending updating={processingRevision} /></div>
       </main>
     );
   }
@@ -290,6 +308,15 @@ export default function TripWorkspace({
         </header>
         <WorkspaceNav active={activeSection} tripId={tripId} />
 
+        <TripRevisionPanel
+          open={revisionOpen}
+          error={messageError}
+          failedMessage={failedMessage?.message ?? null}
+          onOpen={() => setRevisionOpen(true)}
+          onSubmit={(message) => processMessage(message, trip)}
+          onRetry={() => void retryFailedMessage()}
+        />
+
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={activeSection} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }} className="mt-8">
             {activeSection === "brief" && <div className="space-y-6"><TripBrief request={state.request} /><PlanningScope status={state.status} /></div>}
@@ -304,7 +331,7 @@ export default function TripWorkspace({
           </motion.div>
         </AnimatePresence>
 
-        <p className="mx-auto mt-16 max-w-2xl border-t border-stone-900/8 pt-8 text-center text-xs leading-5 text-stone-400">This itinerary reflects the current persisted plan. Natural corrections and replanning will arrive in M16B.</p>
+        <p className="mx-auto mt-16 max-w-2xl border-t border-stone-900/8 pt-8 text-center text-xs leading-5 text-stone-400">This workspace reflects the current persisted plan. Revisions keep the same durable trip link.</p>
       </div>
     </main>
   );

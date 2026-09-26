@@ -40,4 +40,11 @@ class TripState(BaseModel):
 
     itinerary: Itinerary | None = None
 
+    # Persisted only while a completed trip is awaiting correction details.
+    # It lets a later clarification resume selective replanning without
+    # discarding unaffected research.
+    revision_pending_artifacts: list[str] = Field(
+        default_factory=list
+    )
+
     status: str = "collecting"

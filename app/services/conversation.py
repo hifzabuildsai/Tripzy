@@ -5,6 +5,7 @@ from agents import Runner
 
 from app.agents.trip_planner import trip_planner
 from app.models.activity import ActivityResearch
+from app.models.correction import TripCorrection
 from app.models.flight import FlightResearch
 from app.models.hotel import HotelResearch
 from app.models.itinerary import Itinerary
@@ -19,6 +20,14 @@ from app.services.flight_research import FlightResearchService
 from app.services.hotel_research import HotelResearchService
 from app.services.itinerary_planning import ItineraryPlannerService
 from app.services.research import ResearchService
+from app.services.replanning import (
+    ARTIFACT_ORDER,
+    Artifact,
+    apply_correction,
+    changed_request_fields,
+    invalidate_state,
+    invalidated_artifacts,
+)
 from app.services.trip_manager import TripManager
 
 
@@ -82,10 +91,16 @@ class ConversationService:
             self.trip_manager.get_status()
             == "itinerary_planned"
         ):
-            return (
-                self._handle_completed_research_message(
-                    user_message
-                )
+            return await self._process_completed_trip_message(
+                user_message
+            )
+
+        if (
+            self.trip_manager.get_state()
+            .revision_pending_artifacts
+        ):
+            return await self._process_revision_clarification(
+                user_message
             )
 
         current_state = (
@@ -126,8 +141,8 @@ class ConversationService:
                     )
                 )
 
-                self.trip_manager.update_request_fields(
-                    start_date=resolved,
+                self._set_resolved_start_date(
+                    resolved
                 )
 
                 # The same message may also contain travelers, budget,
@@ -165,8 +180,8 @@ class ConversationService:
                     )
                 )
 
-                self.trip_manager.update_request_fields(
-                    start_date=resolved,
+                self._set_resolved_start_date(
+                    resolved
                 )
 
                 # Preserve the existing behavior where one reply can also
@@ -889,40 +904,359 @@ Python application logic decides what happens next.
         )
 
     # ---------------------------------------------------------
-    # COMPLETED WORKFLOW
+    # COMPLETED-TRIP CORRECTIONS
     # ---------------------------------------------------------
 
-    def _handle_completed_research_message(
+    async def _process_completed_trip_message(
         self,
         user_message: str,
     ) -> str:
-
-        normalized = (
-            user_message
-            .strip()
-            .lower()
-        )
-
-        gratitude_messages = {
-            "thanks",
-            "thank you",
-            "thanks!",
-            "thank you!",
-            "thx",
-            "ty",
-        }
-
-        if normalized in gratitude_messages:
-
+        if self._is_gratitude(user_message):
             return (
                 "You're welcome! Your Tripzy research and "
                 "structured day-by-day itinerary are ready."
             )
 
-        return (
-            "Your trip research and structured itinerary are "
-            "already complete."
+        if self._is_approval_without_change(user_message):
+            return (
+                "Great — your current Tripzy plan is unchanged "
+                "and ready whenever you are."
+            )
+
+        correction = await self._interpret_correction(
+            user_message
         )
+        current_request = (
+            self.trip_manager.get_state().request
+        )
+        applied = apply_correction(
+            current=current_request,
+            correction=correction,
+        )
+
+        if not applied.changed_fields:
+            return (
+                "I couldn't identify a specific supported trip "
+                "change. Try something like “make it 8 days,” "
+                "“add museums,” or “move it to October 15, 2028.”"
+            )
+
+        artifacts = invalidated_artifacts(
+            applied.changed_fields
+        )
+        self.trip_manager.replace_request(
+            applied.request
+        )
+        invalidate_state(
+            self.trip_manager.get_state(),
+            artifacts,
+        )
+
+        return await self._finish_revision(
+            artifacts
+        )
+
+    async def _process_revision_clarification(
+        self,
+        user_message: str,
+    ) -> str:
+        """Continue an incomplete revision without restarting the trip."""
+
+        if (
+            self._is_gratitude(user_message)
+            or self._is_approval_without_change(user_message)
+        ):
+            return self._get_next_question()
+
+        state = self.trip_manager.get_state()
+        before = state.request.model_copy(deep=True)
+        missing_information = (
+            self.trip_manager.get_missing_information()
+        )
+
+        if "start_date_year" in missing_information:
+            resolved = self._resolve_start_date_year(
+                user_message=user_message,
+            )
+            if resolved:
+                self._set_resolved_start_date(resolved)
+
+        missing_information = (
+            self.trip_manager.get_missing_information()
+        )
+        if "start_date_day" in missing_information:
+            resolved = self._resolve_start_date_day(
+                user_message=user_message,
+            )
+            if resolved:
+                self._set_resolved_start_date(resolved)
+
+        correction = await self._interpret_correction(
+            user_message
+        )
+        applied = apply_correction(
+            current=self.trip_manager.get_state().request,
+            correction=correction,
+        )
+        self.trip_manager.replace_request(applied.request)
+
+        all_changed_fields = changed_request_fields(
+            before,
+            applied.request,
+        )
+        pending = set(state.revision_pending_artifacts)
+        pending.update(
+            invalidated_artifacts(all_changed_fields)
+        )
+        artifacts = tuple(
+            artifact
+            for artifact in ARTIFACT_ORDER
+            if artifact in pending
+        )
+        invalidate_state(state, artifacts)
+
+        return await self._finish_revision(artifacts)
+
+    async def _finish_revision(
+        self,
+        artifacts: tuple[Artifact, ...],
+    ) -> str:
+        state = self.trip_manager.get_state()
+
+        if not self.trip_manager.is_complete():
+            state.revision_pending_artifacts = list(
+                artifacts
+            )
+            self.trip_manager.set_status("collecting")
+            return self._get_next_question()
+
+        state.revision_pending_artifacts = []
+        return await self._run_selected_artifacts(
+            artifacts
+        )
+
+    async def _run_selected_artifacts(
+        self,
+        artifacts: tuple[Artifact, ...],
+    ) -> str:
+        """Rebuild invalid artifacts in deterministic dependency order."""
+
+        artifact_set = set(artifacts)
+        request = self.trip_manager.get_state().request
+
+        if "destination_research" in artifact_set:
+            self.trip_manager.set_status(
+                "researching_destination"
+            )
+            destination_research = (
+                await self.research_service.research_destination(
+                    request.destination
+                )
+            )
+            self.trip_manager.set_destination_research(
+                destination_research
+            )
+
+        if "flight_options" in artifact_set:
+            self.trip_manager.set_status(
+                "researching_flights"
+            )
+            flight_research = (
+                await self.flight_research_service.research_flights(
+                    origin=request.origin,
+                    destination=request.destination,
+                    departure_date=request.start_date,
+                )
+            )
+            self.trip_manager.set_flight_research(
+                flight_research
+            )
+
+        if "hotel_options" in artifact_set:
+            self.trip_manager.set_status(
+                "researching_hotels"
+            )
+            hotel_research = (
+                await self.hotel_research_service.research_hotels(
+                    request
+                )
+            )
+            self.trip_manager.set_hotel_research(
+                hotel_research
+            )
+
+        if "activity_options" in artifact_set:
+            destination_research = (
+                self.trip_manager.get_destination_research()
+            )
+            if destination_research is None:
+                raise ValueError(
+                    "Destination research is required for activity research."
+                )
+            self.trip_manager.set_status(
+                "researching_activities"
+            )
+            activity_research = (
+                await self.activity_research_service.research_activities(
+                    request=request,
+                    destination_research=destination_research,
+                )
+            )
+            self.trip_manager.set_activity_research(
+                activity_research
+            )
+
+        if "itinerary" in artifact_set:
+            self.trip_manager.set_status(
+                "planning_itinerary"
+            )
+            itinerary = (
+                await self.itinerary_planner_service.build_itinerary(
+                    self.trip_manager.get_state()
+                )
+            )
+            self.trip_manager.set_itinerary(itinerary)
+
+        itinerary = self.trip_manager.get_itinerary()
+        if itinerary is None:
+            raise ValueError(
+                "A completed revised trip requires an itinerary."
+            )
+
+        self.trip_manager.get_state().revision_pending_artifacts = []
+        self.trip_manager.set_status("itinerary_planned")
+        return self._build_combined_response(
+            destination_research=(
+                self.trip_manager.get_destination_research()
+            ),
+            flight_research=(
+                self._build_flight_research_from_state()
+            ),
+            hotel_research=(
+                self._build_hotel_research_from_state()
+            ),
+            activity_research=(
+                self._build_activity_research_from_state()
+            ),
+            itinerary=itinerary,
+        )
+
+    async def _interpret_correction(
+        self,
+        user_message: str,
+    ) -> TripCorrection:
+        today = date.today()
+        current_request = (
+            self.trip_manager.get_state().request
+            .model_dump()
+        )
+        prompt = f"""
+You are interpreting a correction to an existing completed Tripzy trip.
+
+CURRENT DATE: {today.isoformat()}
+
+CURRENT CANONICAL TRIP REQUEST:
+{json.dumps(current_request, indent=2)}
+
+USER'S CORRECTION:
+{user_message}
+
+Call extract_trip_correction exactly once when the user explicitly requests
+a supported change. Do not call extract_trip_request.
+
+Extract ONLY fields the user explicitly changes. The current request is
+context, not permission to repeat or regenerate its values. Never infer a
+new budget, destination, date, traveler count, currency, interest, or style.
+
+Interest intent must be preserved:
+- "add museums" -> interests_add=["museums"]
+- "remove shopping" -> interests_remove=["shopping"]
+- "replace my interests with food and architecture" ->
+  interests_replace=["food", "architecture"]
+Never use interests_replace for an add/remove request.
+
+For dates, use start_date/end_date only when the user supplied a full exact
+date. Preserve a month/day without year or month/year without day in the
+matching *_date_text field. Never invent a day or year. Relative dates may
+be resolved using CURRENT DATE.
+
+Do not decide which research to rerun. Do not ask a question. If there is no
+explicit supported correction, do not call a tool.
+"""
+        result = await Runner.run(
+            trip_planner,
+            prompt,
+        )
+        return self._extract_correction_output(
+            result
+        )
+
+    @staticmethod
+    def _extract_correction_output(result) -> TripCorrection:
+        allowed_fields = set(
+            TripCorrection.model_fields
+        )
+        combined: dict = {}
+
+        for item in result.new_items:
+            if not hasattr(item, "output"):
+                continue
+            output = item.output
+            if not isinstance(output, str):
+                continue
+            try:
+                data = json.loads(output)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(data, dict):
+                continue
+            for key, value in data.items():
+                if key not in allowed_fields or value is None:
+                    continue
+                if key in {"interests_add", "interests_remove"}:
+                    combined.setdefault(key, []).extend(value)
+                else:
+                    combined[key] = value
+
+        return TripCorrection.model_validate(
+            combined
+        )
+
+    def _set_resolved_start_date(
+        self,
+        resolved: str,
+    ) -> None:
+        request = self.trip_manager.get_state().request
+        self.trip_manager.replace_request(
+            request.model_copy(update={
+                "start_date": resolved,
+                "start_date_text": None,
+            })
+        )
+
+    @staticmethod
+    def _normalized_message(user_message: str) -> str:
+        return " ".join(
+            user_message.strip().lower().rstrip(".!?").split()
+        )
+
+    @classmethod
+    def _is_gratitude(cls, user_message: str) -> bool:
+        return cls._normalized_message(user_message) in {
+            "thanks",
+            "thank you",
+            "thx",
+            "ty",
+        }
+
+    @classmethod
+    def _is_approval_without_change(cls, user_message: str) -> bool:
+        return cls._normalized_message(user_message) in {
+            "looks good",
+            "looks great",
+            "perfect",
+            "all good",
+        }
 
     # ---------------------------------------------------------
     # DATE RESOLUTION

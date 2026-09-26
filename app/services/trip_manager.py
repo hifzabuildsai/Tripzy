@@ -15,6 +15,7 @@ from app.models.hotel import (
 from app.models.itinerary import Itinerary
 from app.models.research import DestinationResearch
 from app.models.state import TripState
+from app.models.trip import TripRequest
 from app.services.date_semantics import (
     get_missing_start_date_field,
 )
@@ -98,6 +99,14 @@ class TripManager:
         )(
             **current_data
         )
+
+    def replace_request(
+        self,
+        request: TripRequest,
+    ) -> None:
+        """Replace canonical request truth with a validated request."""
+
+        self.state.request = request
 
     # ---------------------------------------------------------
     # COMPLETENESS

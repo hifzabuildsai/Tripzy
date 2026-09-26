@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-export function PlanningPending() {
+export function PlanningPending({ updating = false }: { updating?: boolean }) {
   return (
     <section role="status" aria-live="polite" className="glass-panel mx-auto max-w-2xl p-8 text-center sm:p-12">
       <div aria-hidden="true" className="mx-auto h-10 w-10 animate-pulse rounded-full border border-[#b66f49]/30 bg-[#e8b38c]/35" />
-      <p className="eyebrow mt-6">Planning in progress</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-stone-950 sm:text-4xl">Tripzy is planning your trip…</h1>
-      <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-stone-500">Tripzy is researching the journey and building your itinerary. This request can take a little while.</p>
+      <p className="eyebrow mt-6">{updating ? "Update in progress" : "Planning in progress"}</p>
+      <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-stone-950 sm:text-4xl">{updating ? "Tripzy is updating your trip…" : "Tripzy is planning your trip…"}</h1>
+      <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-stone-500">{updating ? "Your saved plan remains available if this update cannot finish." : "Tripzy is researching the journey and building your itinerary. This request can take a little while."}</p>
     </section>
   );
 }

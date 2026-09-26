@@ -3,6 +3,7 @@ from agents import Agent, handoff
 from app.config import gemini_model
 from app.agents.destination_researcher import destination_researcher
 from app.tools.trip_extraction import extract_trip_request
+from app.tools.trip_correction import extract_trip_correction
 
 
 trip_planner = Agent(
@@ -175,6 +176,7 @@ requirements are complete.
 
     tools=[
         extract_trip_request,
+        extract_trip_correction,
     ],
 
     handoffs=[
