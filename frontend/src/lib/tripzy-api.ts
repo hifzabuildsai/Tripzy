@@ -384,7 +384,7 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
 
     throw new TripzyApiError(
       "server",
-      "Tripzy could not finish that request. Please try again.",
+      "Tripzy hit a problem while planning this trip. Your trip is safe. Try again.",
       response.status,
     );
   }

@@ -321,6 +321,36 @@ def test_generic_planning_blocks_are_allowed():
     validate(itinerary)
 
 
+def test_generic_local_transfer_is_allowed_without_research():
+    itinerary = build_valid_itinerary()
+
+    itinerary.days[0].items.append(
+        ItineraryItem(
+            title="Generic local transfer",
+            category="logistics",
+        )
+    )
+
+    validate(itinerary)
+
+
+def test_generic_category_does_not_allow_invented_named_activity():
+    itinerary = build_valid_itinerary()
+
+    itinerary.days[2].items.append(
+        ItineraryItem(
+            title="Secret Bosphorus Lantern Museum",
+            category="transport",
+        )
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="outside the structured activity research",
+    ):
+        validate(itinerary)
+
+
 def test_activity_name_must_match_research_exactly():
     itinerary = build_valid_itinerary()
 

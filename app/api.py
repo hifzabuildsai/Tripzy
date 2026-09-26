@@ -172,6 +172,19 @@ async def send_trip_message(
             ),
         ) from exc
 
+    except Exception as exc:
+        # Each planning request works on state reconstructed from the
+        # repository. save_session runs only after process_message
+        # succeeds, so a workflow failure must not persist the session's
+        # partially mutated in-memory state.
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Tripzy hit a problem while planning this trip. "
+                "The saved trip is unchanged and can be retried."
+            ),
+        ) from exc
+
 
 @app.get(
     "/trips/{trip_id}",

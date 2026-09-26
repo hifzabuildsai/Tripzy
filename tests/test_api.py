@@ -226,6 +226,79 @@ def test_message_response_includes_structured_missing_information(
     assert restored["missing_information"] == body["missing_information"]
 
 
+def test_failed_workflow_is_not_persisted_and_can_retry_same_message(
+    monkeypatch,
+) -> None:
+    repository = JsonRoundTripTripRepository()
+    api_module.session_registry = SessionRegistry(
+        repository=repository
+    )
+    client = TestClient(api_module.app)
+    message = "Start on September 10."
+    attempts: list[str] = []
+
+    async def fail_once_then_succeed(
+        conversation,
+        user_message: str,
+    ) -> str:
+        attempts.append(user_message)
+        conversation.trip_manager.update_request_fields(
+            destination="Istanbul",
+        )
+
+        if len(attempts) == 1:
+            conversation.trip_manager.set_status(
+                "itinerary_planned"
+            )
+            raise ValueError(
+                "Invalid generated itinerary."
+            )
+
+        return conversation.trip_manager.get_next_question()
+
+    monkeypatch.setattr(
+        "app.services.conversation.ConversationService.process_message",
+        fail_once_then_succeed,
+    )
+
+    create_response = client.post("/trips")
+    trip_id = create_response.json()["trip_id"]
+    persisted_before = repository.get(trip_id)
+
+    failed_response = client.post(
+        f"/trips/{trip_id}/messages",
+        json={"message": message},
+        headers={"Origin": "http://localhost:3000"},
+    )
+
+    assert failed_response.status_code == 500
+    assert failed_response.json() == {
+        "detail": (
+            "Tripzy hit a problem while planning this trip. "
+            "The saved trip is unchanged and can be retried."
+        ),
+    }
+    assert failed_response.headers[
+        "access-control-allow-origin"
+    ] == "http://localhost:3000"
+
+    persisted_after_failure = repository.get(trip_id)
+    assert persisted_after_failure == persisted_before
+    assert persisted_after_failure is not None
+    assert persisted_after_failure.status == "collecting"
+    assert persisted_after_failure.itinerary is None
+
+    retry_response = client.post(
+        f"/trips/{trip_id}/messages",
+        json={"message": message},
+    )
+
+    assert retry_response.status_code == 200
+    assert retry_response.json()["trip_id"] == trip_id
+    assert attempts == [message, message]
+    assert repository.get(trip_id).request.destination == "Istanbul"
+
+
 def test_month_year_metadata_survives_repository_round_trip() -> None:
     repository = JsonRoundTripTripRepository()
     trip_id = "trip-with-month-and-year"

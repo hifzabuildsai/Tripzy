@@ -22,18 +22,17 @@ class ItineraryPlannerService:
     but it does not own application truth.
     """
 
-    GENERIC_CATEGORIES = {
+    GENERIC_TITLES = {
+        "breakfast",
+        "lunch",
+        "dinner",
         "meal",
         "rest",
-        "leisure",
-        "transport",
-        "transit",
-        "accommodation",
-        "generic",
+        "rest and free time",
         "free time",
-    }
-
-    GENERIC_TITLES = {
+        "leisure time",
+        "local transfer",
+        "generic local transfer",
         "accommodation check-in",
         "accommodation check-out",
         "hotel check-in",
@@ -267,6 +266,16 @@ appears elsewhere in destination research.
 Generic blocks such as meals, rest, free time,
 accommodation check-in/check-out, and generic local
 transfers are allowed.
+
+For those generic support blocks, use only these exact
+generic titles (capitalization may vary):
+
+{sorted(self.GENERIC_TITLES)}
+
+A generic category such as transport, meal, or rest does not
+authorize any other title. Named attractions, restaurants,
+tours, or experiences must still match the eligible activity
+names exactly.
 
 ==================================================
 FIRST AND FINAL DAY
@@ -510,9 +519,12 @@ Use planning_notes for important assumptions and limitations.
             for item in day.items:
 
                 normalized_title = (
-                    item.title
-                    .strip()
-                    .lower()
+                    " ".join(
+                        item.title
+                        .strip()
+                        .lower()
+                        .split()
+                    )
                 )
 
                 if (
@@ -524,18 +536,7 @@ Use planning_notes for important assumptions and limitations.
                         "flight candidate."
                     )
 
-                category = (
-                    item.category
-                    .strip()
-                    .lower()
-                    if item.category
-                    else None
-                )
-
-                if (
-                    category in cls.GENERIC_CATEGORIES
-                    or normalized_title in cls.GENERIC_TITLES
-                ):
+                if normalized_title in cls.GENERIC_TITLES:
                     continue
 
                 if (

@@ -229,9 +229,42 @@ describe("M16A mission handoff and API boundary", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const tripId = await createTripForMission(mission);
-    await expect(sendTripMessage(tripId, mission)).rejects.toMatchObject({ code: "network" });
+    await expect(sendTripMessage(tripId, mission)).rejects.toMatchObject({
+      code: "network",
+      message: expect.stringContaining("cannot reach the planning service"),
+    });
     expect(tripId).toBe(TRIP_ID);
     expect(getPendingMission(TRIP_ID)).toBe(mission);
+  });
+
+  it("retries an HTTP 500 with the same trip id and untouched message", async () => {
+    const reply = "Start on September 10.";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ detail: "Internal failure" }, 500))
+      .mockResolvedValueOnce(jsonResponse({
+        trip_id: TRIP_ID,
+        response: "Your itinerary is ready.",
+        status: "itinerary_planned",
+        missing_information: [],
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(sendTripMessage(TRIP_ID, reply)).rejects.toMatchObject({
+      code: "server",
+      status: 500,
+    });
+    await sendTripMessage(TRIP_ID, reply);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      `http://127.0.0.1:8000/trips/${TRIP_ID}/messages`,
+      expect.objectContaining({ body: JSON.stringify({ message: reply }) }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `http://127.0.0.1:8000/trips/${TRIP_ID}/messages`,
+      expect.objectContaining({ body: JSON.stringify({ message: reply }) }),
+    );
   });
 
   it.each([
@@ -267,6 +300,10 @@ describe("M16A mission handoff and API boundary", () => {
     const error = await getTrip(TRIP_ID).catch((caught) => caught);
 
     expect(error).toMatchObject({ code: "server", status: 500 });
+    expect(error.message).toBe(
+      "Tripzy hit a problem while planning this trip. Your trip is safe. Try again.",
+    );
+    expect(error.message).not.toContain("cannot reach");
     expect(error.message).not.toContain("Traceback");
     expect(error.message).not.toContain("secret-token-value");
   });
