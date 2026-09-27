@@ -1,0 +1,81 @@
+name: M17 deployment readiness
+
+on:
+  push:
+    branches:
+      - m17-deployment
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install backend
+        run: python -m pip install -e ".[dev]"
+
+      - name: Test backend
+        run: pytest -q
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Test frontend
+        working-directory: frontend
+        run: npm test
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_TRIPZY_API_URL: https://tripzy-api.example.com
+        run: npm run build
+
+      - name: Build backend image
+        run: docker build --tag tripzy-backend:m17 .
+
+      - name: Start backend container
+        run: |
+          docker run --detach --rm --name tripzy-backend \
+            --publish 8000:8000 \
+            --env SUPABASE_URL=https://example.supabase.co \
+            --env SUPABASE_KEY=ci-placeholder-key \
+            tripzy-backend:m17
+
+      - name: Verify container health endpoint
+        run: |
+          curl --fail --show-error --silent \
+            --retry 20 --retry-delay 1 --retry-connrefused \
+            http://127.0.0.1:8000/health
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs tripzy-backend
+
+      - name: Stop backend container
+        if: always()
+        run: docker stop tripzy-backend || true

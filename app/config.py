@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlsplit
 
 from agents import OpenAIChatCompletionsModel, set_tracing_disabled
 from dotenv import load_dotenv
@@ -13,6 +14,84 @@ load_dotenv()
 
 APP_ENV = os.getenv("APP_ENV", "development")
 DEBUG = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
+
+LOCAL_CORS_ORIGINS = (
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+)
+
+PRODUCTION_REQUIRED_ENV_VARS = (
+    "GEMINI_API_KEY",
+    "TAVILY_API_KEY",
+    "SUPABASE_URL",
+    "SUPABASE_KEY",
+    "CORS_ORIGINS",
+)
+
+
+def is_production() -> bool:
+    return os.getenv("APP_ENV", "development").strip().lower() == "production"
+
+
+def get_cors_origins() -> list[str]:
+    """Return exact browser origins allowed to call the API."""
+
+    configured_origins = os.getenv("CORS_ORIGINS")
+
+    if configured_origins is None:
+        if is_production():
+            return []
+
+        return list(LOCAL_CORS_ORIGINS)
+
+    origins = [
+        origin.strip().rstrip("/")
+        for origin in configured_origins.split(",")
+        if origin.strip()
+    ]
+
+    for origin in origins:
+        parsed = urlsplit(origin)
+        is_http_origin = (
+            parsed.scheme in {"http", "https"}
+            and bool(parsed.netloc)
+            and not parsed.path
+            and not parsed.query
+            and not parsed.fragment
+        )
+
+        if not is_http_origin:
+            raise RuntimeError(
+                "CORS_ORIGINS must contain only comma-separated HTTP(S) origins."
+            )
+
+    return origins
+
+
+def validate_production_environment() -> None:
+    """Fail startup when a production-only dependency is unconfigured."""
+
+    if not is_production():
+        return
+
+    missing = [
+        variable
+        for variable in PRODUCTION_REQUIRED_ENV_VARS
+        if not os.getenv(variable, "").strip()
+    ]
+
+    if missing:
+        raise RuntimeError(
+            "Missing required production environment variables: "
+            + ", ".join(missing)
+        )
+
+    origins = get_cors_origins()
+
+    if "*" in origins:
+        raise RuntimeError(
+            "CORS_ORIGINS must use exact frontend origins in production."
+        )
 
 
 # ============================================================

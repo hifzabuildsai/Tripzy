@@ -293,6 +293,9 @@ The local API will normally be available at:
 http://127.0.0.1:8000
 ```
 
+The production container starts the same API through `python -m app.server`,
+binds to `0.0.0.0`, and honors the platform-provided `PORT`.
+
 Interactive FastAPI documentation:
 
 ```text
@@ -373,6 +376,22 @@ http://127.0.0.1:3000
 
 Production frontend domains can be configured through `CORS_ORIGINS` without changing application code.
 
+When `APP_ENV=production`, `CORS_ORIGINS` is required and there is no localhost
+fallback.
+
+## Production Deployment
+
+The frozen production architecture is:
+
+- Next.js frontend on Vercel
+- FastAPI backend in Docker on Render
+- managed PostgreSQL on Supabase
+- Gemini and Tavily called only by the backend
+
+See [docs/deployment.md](docs/deployment.md) for the environment contract,
+container smoke test, Render and Vercel setup, live acceptance checks, and
+rollback boundary.
+
 ## Run Tests
 
 ```powershell
@@ -407,13 +426,13 @@ Completed:
 - backend error boundaries
 - configurable CORS
 - deterministic backend/API tests
+- Next.js frontend and persisted trip workspace
+- Docker-based backend deployment readiness
 
 Next:
 
-- frontend application
-- frontend/backend integration
-- Docker and deployment
-- final end-to-end QA
+- live Render and Vercel deployment
+- production end-to-end QA
 - portfolio/demo polish
 
 ## Security Notes
