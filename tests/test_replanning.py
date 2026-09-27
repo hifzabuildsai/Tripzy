@@ -375,13 +375,76 @@ def test_partial_date_clarification_resumes_selective_plan(
     )
     asyncio.run(service.process_message("Move it to October 2028."))
 
-    set_correction(monkeypatch, service, TripCorrection())
+    # Reproduce the real model behavior that caused the E2E regression: the
+    # correction interpreter sees the same clarification reply and emits it
+    # as a fresh partial date after Python has already resolved the exact one.
+    set_correction(
+        monkeypatch,
+        service,
+        TripCorrection(start_date_text="the 15th"),
+    )
     asyncio.run(service.process_message("the 15th"))
     state = service.trip_manager.get_state()
 
     assert state.request.start_date == "2028-10-15"
     assert state.request.start_date_text is None
     assert state.revision_pending_artifacts == []
+    assert calls == ["flight_options", "hotel_options", "itinerary"]
+    assert state.status == "itinerary_planned"
+
+
+def test_year_clarification_cannot_be_reinterpreted_as_partial_date(
+    monkeypatch,
+) -> None:
+    service = ConversationService(state=completed_state())
+    install_workflow_spies(monkeypatch, service)
+    set_correction(
+        monkeypatch,
+        service,
+        TripCorrection(start_date_text="September 10"),
+    )
+    asyncio.run(service.process_message("Move it to September 10."))
+
+    set_correction(
+        monkeypatch,
+        service,
+        TripCorrection(start_date_text="2028"),
+    )
+    asyncio.run(service.process_message("2028"))
+    request = service.trip_manager.get_state().request
+
+    assert request.start_date == "2028-09-10"
+    assert request.start_date_text is None
+
+
+def test_date_clarification_keeps_unrelated_budget_correction(
+    monkeypatch,
+) -> None:
+    service = ConversationService(state=completed_state())
+    calls = install_workflow_spies(monkeypatch, service)
+    set_correction(
+        monkeypatch,
+        service,
+        TripCorrection(start_date_text="October 2028"),
+    )
+    asyncio.run(service.process_message("Move it to October 2028."))
+
+    set_correction(
+        monkeypatch,
+        service,
+        TripCorrection(
+            start_date_text="the 15th",
+            budget=2000,
+        ),
+    )
+    asyncio.run(service.process_message(
+        "the 15th, and reduce the budget to $2,000"
+    ))
+    state = service.trip_manager.get_state()
+
+    assert state.request.start_date == "2028-10-15"
+    assert state.request.start_date_text is None
+    assert state.request.budget == 2000
     assert calls == ["flight_options", "hotel_options", "itinerary"]
     assert state.status == "itinerary_planned"
 
@@ -466,3 +529,80 @@ def test_failed_replan_keeps_old_persisted_plan_and_retries_same_trip(
     assert retried.json()["trip_id"] == trip_id
     assert attempts == [message, message]
     assert repository.get(trip_id).request.duration_days == 8
+
+
+def test_failed_date_clarification_keeps_pending_state_and_retries_same_trip(
+    monkeypatch,
+) -> None:
+    repository = InMemoryTripRepository()
+    trip_id = "same-partial-date-trip"
+    pending = completed_state()
+    pending.request = pending.request.model_copy(update={
+        "start_date": None,
+        "start_date_text": "October 2028",
+    })
+    pending.flight_options = []
+    pending.hotel_options = []
+    pending.itinerary = None
+    pending.revision_pending_artifacts = [
+        "flight_options",
+        "hotel_options",
+        "itinerary",
+    ]
+    pending.status = "collecting"
+    repository.create(trip_id, pending)
+    api_module.session_registry = SessionRegistry(repository=repository)
+    client = TestClient(api_module.app)
+    attempts: list[str] = []
+
+    async def correction(_service, message: str) -> TripCorrection:
+        attempts.append(message)
+        return TripCorrection(start_date_text="the 15th")
+
+    async def fail_then_finish(service, _artifacts):
+        if len(attempts) == 1:
+            raise ValueError("flight research failed")
+
+        restored_artifacts = completed_state()
+        state = service.trip_manager.get_state()
+        state.flight_options = restored_artifacts.flight_options
+        state.hotel_options = restored_artifacts.hotel_options
+        state.itinerary = restored_artifacts.itinerary.model_copy(update={
+            "start_date": "2028-10-15",
+            "end_date": "2028-10-20",
+        })
+        state.revision_pending_artifacts = []
+        state.status = "itinerary_planned"
+        return "Revised itinerary ready."
+
+    monkeypatch.setattr(
+        ConversationService,
+        "_interpret_correction",
+        correction,
+    )
+    monkeypatch.setattr(
+        ConversationService,
+        "_run_selected_artifacts",
+        fail_then_finish,
+    )
+
+    message = "the 15th"
+    failed = client.post(
+        f"/trips/{trip_id}/messages",
+        json={"message": message},
+    )
+    assert failed.status_code == 500
+    assert repository.get(trip_id) == pending
+
+    retried = client.post(
+        f"/trips/{trip_id}/messages",
+        json={"message": message},
+    )
+    persisted = repository.get(trip_id)
+
+    assert retried.status_code == 200
+    assert retried.json()["trip_id"] == trip_id
+    assert attempts == [message, message]
+    assert persisted.request.start_date == "2028-10-15"
+    assert persisted.request.start_date_text is None
+    assert persisted.revision_pending_artifacts == []

@@ -973,6 +973,7 @@ Python application logic decides what happens next.
         missing_information = (
             self.trip_manager.get_missing_information()
         )
+        resolved_start_date = False
 
         if "start_date_year" in missing_information:
             resolved = self._resolve_start_date_year(
@@ -980,6 +981,7 @@ Python application logic decides what happens next.
             )
             if resolved:
                 self._set_resolved_start_date(resolved)
+                resolved_start_date = True
 
         missing_information = (
             self.trip_manager.get_missing_information()
@@ -990,10 +992,20 @@ Python application logic decides what happens next.
             )
             if resolved:
                 self._set_resolved_start_date(resolved)
+                resolved_start_date = True
 
         correction = await self._interpret_correction(
             user_message
         )
+        if resolved_start_date:
+            # Python has authoritatively combined the preserved partial date
+            # with the explicitly supplied missing component. The same reply
+            # may still contain other corrections, but model-extracted start
+            # date fields must not replace the resolved canonical value.
+            correction = correction.model_copy(update={
+                "start_date": None,
+                "start_date_text": None,
+            })
         applied = apply_correction(
             current=self.trip_manager.get_state().request,
             correction=correction,
