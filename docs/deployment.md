@@ -82,7 +82,7 @@ docker run --detach --rm --name tripzy-backend \
   --env SUPABASE_URL=https://example.supabase.co \
   --env SUPABASE_KEY=local-smoke-test \
   tripzy-backend:m17
-curl --fail --retry 10 --retry-connrefused http://127.0.0.1:8000/health
+curl --fail --retry 10 --retry-all-errors http://127.0.0.1:8000/health
 docker stop tripzy-backend
 ```
 

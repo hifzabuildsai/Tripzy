@@ -71,7 +71,7 @@ jobs:
       - name: Verify container health endpoint
         run: |
           curl --fail --show-error --silent \
-            --retry 20 --retry-delay 1 --retry-connrefused \
+            --retry 20 --retry-delay 1 --retry-all-errors \
             http://127.0.0.1:8000/health
 
       - name: Show container logs on failure
