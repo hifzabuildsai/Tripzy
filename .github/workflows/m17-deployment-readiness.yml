@@ -1,5 +1,7 @@
 name: M17 deployment readiness
 
+# Validation only: this workflow never deploys Tripzy.
+
 on:
   push:
     branches:
