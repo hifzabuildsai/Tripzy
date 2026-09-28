@@ -7,7 +7,7 @@ The system is built around a deliberate architecture:
 > LLMs handle interpretation and reasoning.  
 > Deterministic application code owns state, workflow, validation, and invariants.
 
-Tripzy is currently a backend-first project built with Python, FastAPI, the OpenAI Agents SDK, Gemini, Tavily, and Supabase PostgreSQL.
+Tripzy is a full-stack agentic AI product built with Next.js, Python, FastAPI, the OpenAI Agents SDK, Gemini, Tavily, and Supabase PostgreSQL.
 
 ## What Tripzy Does
 
@@ -384,12 +384,12 @@ fallback.
 The frozen production architecture is:
 
 - Next.js frontend on Vercel
-- FastAPI backend in Docker on Render
+- FastAPI backend in Docker on Railway
 - managed PostgreSQL on Supabase
 - Gemini and Tavily called only by the backend
 
 See [docs/deployment.md](docs/deployment.md) for the environment contract,
-container smoke test, Render and Vercel setup, live acceptance checks, and
+container smoke test, Railway and Vercel setup, live acceptance checks, and
 rollback boundary.
 
 ## Run Tests
@@ -428,11 +428,13 @@ Completed:
 - deterministic backend/API tests
 - Next.js frontend and persisted trip workspace
 - Docker-based backend deployment readiness
+- Railway backend deployment
+- Vercel frontend deployment
+- live production persistence, replanning, research, and failure-safe retry acceptance
 
 Next:
 
-- live Render and Vercel deployment
-- production end-to-end QA
+- final end-to-end QA
 - portfolio/demo polish
 
 ## Security Notes

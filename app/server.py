@@ -9,7 +9,7 @@ DEFAULT_PORT = 8000
 
 
 def get_port() -> int:
-    """Return Render's injected port or the local default."""
+    """Return the platform-provided port or the local default."""
 
     raw_port = os.getenv("PORT", str(DEFAULT_PORT))
 
