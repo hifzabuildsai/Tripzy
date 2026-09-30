@@ -69,9 +69,14 @@ credentials in Vercel frontend variables.
 
 ## Pre-deployment checks
 
+Database bootstrap and deny-by-default RLS verification are documented in
+[`docs/database.md`](database.md).
+
 From the repository root:
 
 ```bash
+python -m pip install --require-hashes --requirement requirements.lock
+python -m pip install pytest==9.1.1
 pytest -q
 ```
 
@@ -87,12 +92,12 @@ NEXT_PUBLIC_TRIPZY_API_URL=https://api.example.com npm run build
 Build and smoke-test the backend image:
 
 ```bash
-docker build --tag tripzy-backend:m17 .
+docker build --tag tripzy-backend:release-gate .
 docker run --detach --rm --name tripzy-backend \
   --publish 8000:8000 \
   --env SUPABASE_URL=https://example.supabase.co \
   --env SUPABASE_KEY=local-smoke-test \
-  tripzy-backend:m17
+  tripzy-backend:release-gate
 curl --fail --retry 10 --retry-all-errors http://127.0.0.1:8000/health
 docker stop tripzy-backend
 ```
@@ -137,7 +142,7 @@ The server binds to `0.0.0.0` and reads Railway's injected `PORT`.
 
 ## Live acceptance checks
 
-M17 live acceptance verified the following production behavior:
+Live acceptance verified the following production behavior:
 
 1. The Vercel frontend can create and load a persisted trip through Railway.
 2. Refresh and direct trip URLs restore the same durable Supabase-backed trip.

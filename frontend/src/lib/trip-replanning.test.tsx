@@ -57,7 +57,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("M16B revision experience", () => {
+describe("trip replanning experience", () => {
   it("exposes a calm Change the plan action and natural correction composer", () => {
     const closed = renderToStaticMarkup(
       <TripRevisionPanel

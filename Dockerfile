@@ -6,12 +6,11 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
 
 WORKDIR /build
 
-COPY pyproject.toml README.md ./
-COPY app ./app
+COPY requirements.lock ./
 
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/python -m pip install --upgrade pip \
-    && /opt/venv/bin/python -m pip install .
+    && /opt/venv/bin/python -m pip install --require-hashes --requirement requirements.lock
 
 
 FROM python:3.12-slim AS runtime
@@ -27,6 +26,8 @@ RUN groupadd --gid 10001 tripzy \
 COPY --from=builder /opt/venv /opt/venv
 
 WORKDIR /app
+
+COPY app ./app
 
 USER tripzy
 
