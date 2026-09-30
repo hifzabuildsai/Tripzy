@@ -2,6 +2,7 @@ from agents import function_tool
 from tavily import TavilyClient
 
 from app.config import TAVILY_API_KEY
+from app.logging_config import logger
 
 
 @function_tool
@@ -55,29 +56,12 @@ def search_hotel_information(
         []
     )
 
-    print(
-        "\n🏨 HOTEL SEARCH EXECUTED"
-    )
-
-    print(
-        f"Destination: {destination}"
-    )
-
-    print(
-        f"Check-in: {check_in_date}"
-    )
-
-    if check_out_date:
-        print(
-            f"Check-out: {check_out_date}"
-        )
-
-    print(
-        f"Travelers: {travelers}"
-    )
-
-    print(
-        f"Results returned: {len(results)}"
+    logger.debug(
+        "travel_search_completed",
+        extra={
+            "stage": "hotel_research",
+            "result_count": len(results),
+        },
     )
 
     if not results:

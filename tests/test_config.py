@@ -21,6 +21,47 @@ def test_production_cors_has_no_local_fallback(monkeypatch) -> None:
     assert config.get_cors_origins() == []
 
 
+def test_api_docs_are_disabled_only_in_production(monkeypatch) -> None:
+    monkeypatch.setenv("APP_ENV", "development")
+    assert config.get_api_docs_urls() == {
+        "docs_url": "/docs",
+        "redoc_url": "/redoc",
+        "openapi_url": "/openapi.json",
+    }
+
+    monkeypatch.setenv("APP_ENV", "production")
+    assert config.get_api_docs_urls() == {
+        "docs_url": None,
+        "redoc_url": None,
+        "openapi_url": None,
+    }
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "not-a-number"])
+def test_public_demo_integer_settings_must_be_positive(
+    monkeypatch,
+    value: str,
+) -> None:
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", value)
+
+    with pytest.raises(RuntimeError, match="MAX_REQUEST_BODY_BYTES"):
+        config.get_positive_int("MAX_REQUEST_BODY_BYTES", 16_384)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["0", "-0.1", "not-a-number", "nan", "inf"],
+)
+def test_public_demo_timeout_settings_must_be_positive(
+    monkeypatch,
+    value: str,
+) -> None:
+    monkeypatch.setenv("PLANNING_TIMEOUT_SECONDS", value)
+
+    with pytest.raises(RuntimeError, match="PLANNING_TIMEOUT_SECONDS"):
+        config.get_positive_float("PLANNING_TIMEOUT_SECONDS", 240.0)
+
+
 def test_production_environment_requires_backend_contract(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
 
@@ -56,6 +97,7 @@ def test_server_honors_port_and_binds_all_interfaces(monkeypatch) -> None:
 
     monkeypatch.setenv("APP_ENV", "development")
     monkeypatch.setenv("PORT", "4321")
+    monkeypatch.setattr(server, "DEBUG", False)
     monkeypatch.setattr(
         server.uvicorn,
         "run",
@@ -71,6 +113,8 @@ def test_server_honors_port_and_binds_all_interfaces(monkeypatch) -> None:
                 "host": "0.0.0.0",
                 "port": 4321,
                 "proxy_headers": True,
+                "access_log": False,
+                "log_level": "info",
             },
         )
     ]

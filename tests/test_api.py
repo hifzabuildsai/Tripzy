@@ -1,10 +1,17 @@
+import asyncio
 import json
+from contextlib import asynccontextmanager
 
 from fastapi.testclient import TestClient
 
 import app.api as api_module
 from app.models.state import TripState
 from app.models.trip import TripRequest
+from app.hardening import (
+    FixedWindowRateLimiter,
+    PlanningCapacityError,
+    PlanningConcurrencyGuard,
+)
 from app.services.in_memory_trip_repository import (
     InMemoryTripRepository,
 )
@@ -107,6 +114,14 @@ def build_client() -> TestClient:
     api_module.session_registry = SessionRegistry(
         repository=InMemoryTripRepository()
     )
+    api_module.public_rate_limiter = FixedWindowRateLimiter(
+        request_limit=api_module.PUBLIC_RATE_LIMIT_REQUESTS,
+        window_seconds=api_module.PUBLIC_RATE_LIMIT_WINDOW_SECONDS,
+    )
+    api_module.planning_guard = PlanningConcurrencyGuard(
+        limit=api_module.MAX_CONCURRENT_PLANNING_REQUESTS,
+        queue_timeout_seconds=api_module.PLANNING_QUEUE_TIMEOUT_SECONDS,
+    )
 
     return TestClient(api_module.app)
 
@@ -119,6 +134,10 @@ def build_failing_client() -> TestClient:
 
     api_module.session_registry = SessionRegistry(
         repository=FailingTripRepository()
+    )
+    api_module.public_rate_limiter = FixedWindowRateLimiter(
+        request_limit=api_module.PUBLIC_RATE_LIMIT_REQUESTS,
+        window_seconds=api_module.PUBLIC_RATE_LIMIT_WINDOW_SECONDS,
     )
 
     return TestClient(api_module.app)
@@ -133,6 +152,24 @@ def test_health_endpoint() -> None:
     assert response.json() == {
         "status": "healthy",
     }
+    assert response.headers["cache-control"] == "no-store"
+    assert "frame-ancestors 'none'" in response.headers[
+        "content-security-policy"
+    ]
+    assert response.headers["permissions-policy"] == (
+        "camera=(), geolocation=(), microphone=()"
+    )
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+
+
+def test_development_api_docs_remain_available() -> None:
+    client = build_client()
+
+    assert client.get("/docs").status_code == 200
+    assert client.get("/redoc").status_code == 200
+    assert client.get("/openapi.json").status_code == 200
 
 
 def test_create_trip() -> None:
@@ -299,6 +336,71 @@ def test_failed_workflow_is_not_persisted_and_can_retry_same_message(
     assert repository.get(trip_id).request.destination == "Istanbul"
 
 
+def test_planning_timeout_preserves_saved_state_and_allows_retry(
+    monkeypatch,
+) -> None:
+    repository = JsonRoundTripTripRepository()
+    api_module.session_registry = SessionRegistry(repository=repository)
+    api_module.public_rate_limiter = FixedWindowRateLimiter(
+        request_limit=api_module.PUBLIC_RATE_LIMIT_REQUESTS,
+        window_seconds=api_module.PUBLIC_RATE_LIMIT_WINDOW_SECONDS,
+    )
+    api_module.planning_guard = PlanningConcurrencyGuard(
+        limit=1,
+        queue_timeout_seconds=0.1,
+    )
+    client = TestClient(api_module.app)
+    message = "Plan Istanbul without persisting a partial timeout."
+
+    async def slow_process_message(
+        conversation,
+        user_message: str,
+    ) -> str:
+        assert user_message == message
+        conversation.trip_manager.update_request_fields(
+            destination="Istanbul",
+        )
+        await asyncio.sleep(0.05)
+        return conversation.trip_manager.get_next_question()
+
+    monkeypatch.setattr(
+        "app.services.conversation.ConversationService.process_message",
+        slow_process_message,
+    )
+    monkeypatch.setattr(api_module, "PLANNING_TIMEOUT_SECONDS", 0.01)
+
+    trip_id = client.post("/trips").json()["trip_id"]
+    repository.save(
+        trip_id,
+        TripState(request=TripRequest(destination="Seoul")),
+    )
+    persisted_before = repository.get(trip_id)
+
+    timed_out = client.post(
+        f"/trips/{trip_id}/messages",
+        json={"message": message},
+    )
+
+    assert timed_out.status_code == 504
+    assert timed_out.json() == {
+        "detail": (
+            "Tripzy planning timed out. The saved trip is unchanged "
+            "and can be retried."
+        ),
+    }
+    assert repository.get(trip_id) == persisted_before
+    assert repository.get(trip_id).request.destination == "Seoul"
+
+    monkeypatch.setattr(api_module, "PLANNING_TIMEOUT_SECONDS", 1.0)
+    retried = client.post(
+        f"/trips/{trip_id}/messages",
+        json={"message": message},
+    )
+
+    assert retried.status_code == 200
+    assert repository.get(trip_id).request.destination == "Istanbul"
+
+
 def test_month_year_metadata_survives_repository_round_trip() -> None:
     repository = JsonRoundTripTripRepository()
     trip_id = "trip-with-month-and-year"
@@ -382,6 +484,94 @@ def test_empty_message_is_rejected() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_message_character_limit_is_enforced() -> None:
+    client = build_client()
+    trip_id = client.post("/trips").json()["trip_id"]
+
+    response = client.post(
+        f"/trips/{trip_id}/messages",
+        json={
+            "message": "x" * (api_module.MAX_REQUEST_BODY_BYTES // 2),
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["type"] == "string_too_long"
+
+
+def test_request_body_byte_limit_is_enforced_before_processing() -> None:
+    client = build_client()
+
+    response = client.post(
+        "/trips/not-used/messages",
+        content=b"x" * (api_module.MAX_REQUEST_BODY_BYTES + 1),
+        headers={
+            "Content-Type": "application/json",
+            "Origin": "http://localhost:3000",
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json() == {"detail": "Request body is too large."}
+    assert response.headers["access-control-allow-origin"] == (
+        "http://localhost:3000"
+    )
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_public_write_rate_limit_returns_retry_after() -> None:
+    client = build_client()
+    api_module.public_rate_limiter = FixedWindowRateLimiter(
+        request_limit=2,
+        window_seconds=60,
+    )
+
+    assert client.post("/trips").status_code == 201
+    assert client.post("/trips").status_code == 201
+
+    response = client.post("/trips")
+
+    assert response.status_code == 429
+    assert response.json() == {
+        "detail": "Too many public demo requests. Please try again shortly.",
+    }
+    assert int(response.headers["retry-after"]) >= 1
+
+
+def test_planning_capacity_rejection_does_not_persist_state() -> None:
+    class RejectingPlanningGuard:
+        @asynccontextmanager
+        async def slot(self):
+            raise PlanningCapacityError
+            yield
+
+    repository = JsonRoundTripTripRepository()
+    api_module.session_registry = SessionRegistry(repository=repository)
+    api_module.public_rate_limiter = FixedWindowRateLimiter(
+        request_limit=api_module.PUBLIC_RATE_LIMIT_REQUESTS,
+        window_seconds=api_module.PUBLIC_RATE_LIMIT_WINDOW_SECONDS,
+    )
+    api_module.planning_guard = RejectingPlanningGuard()
+    client = TestClient(api_module.app)
+    trip_id = client.post("/trips").json()["trip_id"]
+    persisted_before = repository.get(trip_id)
+
+    response = client.post(
+        f"/trips/{trip_id}/messages",
+        json={"message": "Plan a trip to Istanbul."},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": (
+            "Tripzy is handling other planning requests. "
+            "Please retry shortly."
+        ),
+    }
+    assert response.headers["retry-after"] == "1"
+    assert repository.get(trip_id) == persisted_before
 
 
 def test_create_trip_returns_503_when_persistence_fails() -> None:

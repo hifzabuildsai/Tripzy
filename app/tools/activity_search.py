@@ -2,6 +2,7 @@ from agents import function_tool
 from tavily import TavilyClient
 
 from app.config import TAVILY_API_KEY
+from app.logging_config import logger
 
 
 @function_tool
@@ -79,28 +80,12 @@ def search_activity_information(
         []
     )
 
-    print(
-        "\n🎯 ACTIVITY SEARCH EXECUTED"
-    )
-
-    print(
-        f"Destination: {destination}"
-    )
-
-    if interests:
-        print(
-            "Interests: "
-            + ", ".join(interests)
-        )
-
-    if neighborhoods:
-        print(
-            "Neighborhood context: "
-            + ", ".join(neighborhoods)
-        )
-
-    print(
-        f"Results returned: {len(results)}"
+    logger.debug(
+        "travel_search_completed",
+        extra={
+            "stage": "activity_research",
+            "result_count": len(results),
+        },
     )
 
     if not results:

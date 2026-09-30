@@ -2,6 +2,7 @@ from agents import function_tool
 from tavily import TavilyClient
 
 from app.config import TAVILY_API_KEY
+from app.logging_config import logger
 
 
 @function_tool
@@ -41,20 +42,12 @@ def search_flight_information(
         []
     )
 
-    print(
-        "\n✈️ FLIGHT SEARCH EXECUTED"
-    )
-
-    print(
-        f"Route: {origin} → {destination}"
-    )
-
-    print(
-        f"Departure date: {departure_date}"
-    )
-
-    print(
-        f"Results returned: {len(results)}"
+    logger.debug(
+        "travel_search_completed",
+        extra={
+            "stage": "flight_research",
+            "result_count": len(results),
+        },
     )
 
     if not results:

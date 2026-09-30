@@ -45,6 +45,13 @@ https://tripzy-liard.vercel.app
 | `SUPABASE_KEY` | Yes | Yes | Backend-only Supabase secret key |
 | `CORS_ORIGINS` | Yes | No | Comma-separated exact frontend origins, without paths |
 | `DEBUG` | No | No | Keep `false` in production |
+| `MAX_REQUEST_BODY_BYTES` | No | No | Defaults to `16384` |
+| `MAX_MESSAGE_CHARACTERS` | No | No | Defaults to `4000` |
+| `PUBLIC_RATE_LIMIT_REQUESTS` | No | No | Defaults to `20` writes per window |
+| `PUBLIC_RATE_LIMIT_WINDOW_SECONDS` | No | No | Defaults to `60` |
+| `MAX_CONCURRENT_PLANNING_REQUESTS` | No | No | Defaults to `2` |
+| `PLANNING_QUEUE_TIMEOUT_SECONDS` | No | No | Defaults to `1` |
+| `PLANNING_TIMEOUT_SECONDS` | No | No | Defaults to `240` |
 | `PORT` | Platform-owned | No | Railway injects this; do not hard-code it |
 
 When `APP_ENV=production`, the server refuses to start if any required backend
@@ -56,6 +63,13 @@ CORS_ORIGINS=https://tripzy-liard.vercel.app
 ```
 
 Do not include a path or trailing slash. Do not use `*`.
+
+The request limit, rate limit, planning concurrency guard, and timeout use the
+defaults above when omitted. Rate and concurrency state are intentionally
+process-local for the current single-replica public demo; they are not a
+distributed quota system. Production disables `/docs`, `/redoc`, and
+`/openapi.json`, while development keeps them available. Application logs are
+structured and redacted, and `DEBUG=false` suppresses verbose workflow events.
 
 ### Vercel frontend
 

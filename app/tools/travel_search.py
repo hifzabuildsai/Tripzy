@@ -2,6 +2,7 @@ from tavily import TavilyClient
 from agents import function_tool
 
 from app.config import TAVILY_API_KEY
+from app.logging_config import logger
 
 
 tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
@@ -21,9 +22,13 @@ def search_travel_information(destination: str) -> str:
 
     results = response.get("results", [])
 
-    print("\n🔎 TAVILY SEARCH EXECUTED")
-    print(f"Query: travel information about {destination}")
-    print(f"Results returned: {len(results)}\n")
+    logger.debug(
+        "travel_search_completed",
+        extra={
+            "stage": "destination_research",
+            "result_count": len(results),
+        },
+    )
 
     if not results:
         return f"No useful travel information found for {destination}."
