@@ -142,7 +142,7 @@ The server binds to `0.0.0.0` and reads Railway's injected `PORT`.
 
 ## Live acceptance checks
 
-M17 live acceptance verified the following production behavior:
+Live acceptance verified the following production behavior:
 
 1. The Vercel frontend can create and load a persisted trip through Railway.
 2. Refresh and direct trip URLs restore the same durable Supabase-backed trip.

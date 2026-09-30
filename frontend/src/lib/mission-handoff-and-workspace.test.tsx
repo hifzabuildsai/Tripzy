@@ -133,7 +133,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("M16A mission handoff and API boundary", () => {
+describe("mission handoff and API boundary", () => {
   it("creates a real trip, preserves the untouched mission, and sends it to the same trip id", async () => {
     const mission = "  Plan a calm food trip from Karachi to Lisbon\nfor two people.  ";
     const fetchMock = vi.fn()
@@ -309,7 +309,7 @@ describe("M16A mission handoff and API boundary", () => {
   });
 });
 
-describe("M16A real-state presentation", () => {
+describe("real-state presentation", () => {
   it("renders the backend clarification verbatim", () => {
     const clarification = "Tell me your departure city, dates, travelers and approximate budget. You can give me everything in one message.";
     const html = renderToStaticMarkup(<IntakePrompt pristine={false} prompt={clarification} />);
@@ -351,7 +351,7 @@ describe("M16A real-state presentation", () => {
   });
 });
 
-describe("M16A durable workspace navigation", () => {
+describe("durable workspace navigation", () => {
   it("normalizes URL view state and preserves discover naming", () => {
     expect(normalizeWorkspaceSection(undefined)).toBe("brief");
     expect(normalizeWorkspaceSection("discover")).toBe("research");

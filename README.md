@@ -1,6 +1,12 @@
 # Tripzy
 
+[![CI](https://github.com/hifzabuildsai/Tripzy/actions/workflows/ci.yml/badge.svg)](https://github.com/hifzabuildsai/Tripzy/actions/workflows/ci.yml)
+
 Tripzy is an agentic AI travel planning application that turns conversational trip requirements into structured destination research, travel options, activities, and a day-by-day itinerary.
+
+- **Live frontend:** https://tripzy-liard.vercel.app
+- **Backend API:** https://tripzy-api-production.up.railway.app
+- **Backend health:** https://tripzy-api-production.up.railway.app/health
 
 The system is built around a deliberate architecture:
 
