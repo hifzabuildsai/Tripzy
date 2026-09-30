@@ -1,6 +1,16 @@
 from pydantic import BaseModel, Field
 
+from app.config import (
+    DEFAULT_MAX_MESSAGE_CHARACTERS,
+    get_positive_int,
+)
 from app.models.state import TripState
+
+
+MAX_MESSAGE_CHARACTERS = get_positive_int(
+    "MAX_MESSAGE_CHARACTERS",
+    DEFAULT_MAX_MESSAGE_CHARACTERS,
+)
 
 
 class CreateTripResponse(BaseModel):
@@ -21,6 +31,7 @@ class TripMessageRequest(BaseModel):
 
     message: str = Field(
         min_length=1,
+        max_length=MAX_MESSAGE_CHARACTERS,
     )
 
 

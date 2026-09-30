@@ -2,7 +2,7 @@ import os
 
 import uvicorn
 
-from app.config import validate_production_environment
+from app.config import DEBUG, validate_production_environment
 
 
 DEFAULT_PORT = 8000
@@ -33,6 +33,8 @@ def main() -> None:
         host="0.0.0.0",
         port=get_port(),
         proxy_headers=True,
+        access_log=False,
+        log_level="debug" if DEBUG else "info",
     )
 
 

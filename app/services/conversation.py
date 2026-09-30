@@ -4,6 +4,7 @@ from datetime import date
 from agents import Runner
 
 from app.agents.trip_planner import trip_planner
+from app.logging_config import logger
 from app.models.activity import ActivityResearch
 from app.models.correction import TripCorrection
 from app.models.flight import FlightResearch
@@ -127,18 +128,9 @@ class ConversationService:
             )
 
             if resolved:
-
-                print(
-                    "\n📅 RESOLVED TRAVEL DATE"
-                )
-
-                print(
-                    json.dumps(
-                        {
-                            "start_date": resolved,
-                        },
-                        indent=2,
-                    )
+                logger.debug(
+                    "travel_date_resolved",
+                    extra={"stage": "mission_intake"},
                 )
 
                 self._set_resolved_start_date(
@@ -166,18 +158,9 @@ class ConversationService:
             )
 
             if resolved:
-
-                print(
-                    "\n📅 RESOLVED TRAVEL DATE"
-                )
-
-                print(
-                    json.dumps(
-                        {
-                            "start_date": resolved,
-                        },
-                        indent=2,
-                    )
+                logger.debug(
+                    "travel_date_resolved",
+                    extra={"stage": "mission_intake"},
                 )
 
                 self._set_resolved_start_date(
@@ -569,16 +552,9 @@ Python application logic decides what happens next.
         )
 
         if extracted_data:
-
-            print(
-                "\n🧠 EXTRACTED TRIP DATA"
-            )
-
-            print(
-                json.dumps(
-                    extracted_data,
-                    indent=2,
-                )
+            logger.debug(
+                "trip_data_extracted",
+                extra={"stage": "mission_intake"},
             )
 
             self.trip_manager.update_request_fields(
@@ -627,8 +603,9 @@ Python application logic decides what happens next.
                 "researching_destination"
             )
 
-            print(
-                "\n🔎 STARTING DESTINATION RESEARCH"
+            logger.debug(
+                "planning_stage_started",
+                extra={"stage": "destination_research"},
             )
 
             destination_research = (
@@ -642,18 +619,9 @@ Python application logic decides what happens next.
                 destination_research
             )
 
-            print(
-                "\n📦 STRUCTURED DESTINATION RESEARCH"
-            )
-
-            print(
-                destination_research.model_dump_json(
-                    indent=2
-                )
-            )
-
-            print(
-                "\n✅ DESTINATION RESEARCH COMPLETE"
+            logger.debug(
+                "planning_stage_completed",
+                extra={"stage": "destination_research"},
             )
 
             status = (
@@ -671,8 +639,9 @@ Python application logic decides what happens next.
                 "researching_flights"
             )
 
-            print(
-                "\n✈️ STARTING FLIGHT RESEARCH"
+            logger.debug(
+                "planning_stage_started",
+                extra={"stage": "flight_research"},
             )
 
             flight_research = (
@@ -688,18 +657,9 @@ Python application logic decides what happens next.
                 flight_research
             )
 
-            print(
-                "\n📦 STRUCTURED FLIGHT RESEARCH"
-            )
-
-            print(
-                flight_research.model_dump_json(
-                    indent=2
-                )
-            )
-
-            print(
-                "\n✅ FLIGHT RESEARCH COMPLETE"
+            logger.debug(
+                "planning_stage_completed",
+                extra={"stage": "flight_research"},
             )
 
             status = (
@@ -717,8 +677,9 @@ Python application logic decides what happens next.
                 "researching_hotels"
             )
 
-            print(
-                "\n🏨 STARTING HOTEL RESEARCH"
+            logger.debug(
+                "planning_stage_started",
+                extra={"stage": "hotel_research"},
             )
 
             hotel_research = (
@@ -732,18 +693,9 @@ Python application logic decides what happens next.
                 hotel_research
             )
 
-            print(
-                "\n📦 STRUCTURED HOTEL RESEARCH"
-            )
-
-            print(
-                hotel_research.model_dump_json(
-                    indent=2
-                )
-            )
-
-            print(
-                "\n✅ HOTEL RESEARCH COMPLETE"
+            logger.debug(
+                "planning_stage_completed",
+                extra={"stage": "hotel_research"},
             )
 
             status = (
@@ -772,8 +724,9 @@ Python application logic decides what happens next.
                 "researching_activities"
             )
 
-            print(
-                "\n🎯 STARTING ACTIVITY RESEARCH"
+            logger.debug(
+                "planning_stage_started",
+                extra={"stage": "activity_research"},
             )
 
             activity_research = (
@@ -790,18 +743,9 @@ Python application logic decides what happens next.
                 activity_research
             )
 
-            print(
-                "\n📦 STRUCTURED ACTIVITY RESEARCH"
-            )
-
-            print(
-                activity_research.model_dump_json(
-                    indent=2
-                )
-            )
-
-            print(
-                "\n✅ ACTIVITY RESEARCH COMPLETE"
+            logger.debug(
+                "planning_stage_completed",
+                extra={"stage": "activity_research"},
             )
 
             status = (
@@ -819,8 +763,9 @@ Python application logic decides what happens next.
                 "planning_itinerary"
             )
 
-            print(
-                "\n🗓️ STARTING ITINERARY PLANNING"
+            logger.debug(
+                "planning_stage_started",
+                extra={"stage": "itinerary_planning"},
             )
 
             itinerary = (
@@ -834,18 +779,9 @@ Python application logic decides what happens next.
                 itinerary
             )
 
-            print(
-                "\n📦 STRUCTURED ITINERARY"
-            )
-
-            print(
-                itinerary.model_dump_json(
-                    indent=2
-                )
-            )
-
-            print(
-                "\n✅ ITINERARY PLANNING COMPLETE"
+            logger.debug(
+                "planning_stage_completed",
+                extra={"stage": "itinerary_planning"},
             )
 
             return self._build_combined_response(

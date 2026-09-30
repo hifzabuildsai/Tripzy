@@ -1,3 +1,4 @@
+import math
 import os
 from urllib.parse import urlsplit
 
@@ -15,6 +16,14 @@ load_dotenv()
 APP_ENV = os.getenv("APP_ENV", "development")
 DEBUG = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
 
+DEFAULT_MAX_REQUEST_BODY_BYTES = 16 * 1024
+DEFAULT_MAX_MESSAGE_CHARACTERS = 4_000
+DEFAULT_PUBLIC_RATE_LIMIT_REQUESTS = 20
+DEFAULT_PUBLIC_RATE_LIMIT_WINDOW_SECONDS = 60
+DEFAULT_MAX_CONCURRENT_PLANNING_REQUESTS = 2
+DEFAULT_PLANNING_QUEUE_TIMEOUT_SECONDS = 1.0
+DEFAULT_PLANNING_TIMEOUT_SECONDS = 240.0
+
 LOCAL_CORS_ORIGINS = (
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -31,6 +40,55 @@ PRODUCTION_REQUIRED_ENV_VARS = (
 
 def is_production() -> bool:
     return os.getenv("APP_ENV", "development").strip().lower() == "production"
+
+
+def get_positive_int(name: str, default: int) -> int:
+    """Return a strictly positive integer environment setting."""
+
+    raw_value = os.getenv(name, str(default)).strip()
+
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a positive integer.") from exc
+
+    if not math.isfinite(value) or value <= 0:
+        raise RuntimeError(f"{name} must be a positive integer.")
+
+    return value
+
+
+def get_positive_float(name: str, default: float) -> float:
+    """Return a strictly positive numeric environment setting."""
+
+    raw_value = os.getenv(name, str(default)).strip()
+
+    try:
+        value = float(raw_value)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be greater than zero.") from exc
+
+    if not math.isfinite(value) or value <= 0:
+        raise RuntimeError(f"{name} must be greater than zero.")
+
+    return value
+
+
+def get_api_docs_urls() -> dict[str, str | None]:
+    """Expose interactive API documentation only outside production."""
+
+    if is_production():
+        return {
+            "docs_url": None,
+            "redoc_url": None,
+            "openapi_url": None,
+        }
+
+    return {
+        "docs_url": "/docs",
+        "redoc_url": "/redoc",
+        "openapi_url": "/openapi.json",
+    }
 
 
 def get_cors_origins() -> list[str]:
