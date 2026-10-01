@@ -1,0 +1,46 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-002",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Tokyo",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "Karachi",
+          "destination": "Tokyo"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Tokyo Eval Hotel",
+          "destination": "Tokyo"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Senso-ji",
+          "destination": "Tokyo",
+          "category": "attraction"
+        },
+        {
+          "name": "Ueno Park",
+          "destination": "Tokyo",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}
