@@ -2,7 +2,22 @@ import type { Itinerary } from "@/types/trip";
 
 function formatCost(value: number | null, currency: string | null) {
   if (value === null) return null;
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD", maximumFractionDigits: 0 }).format(value);
+
+  const normalizedCurrency = currency?.trim().toUpperCase() === "TL"
+    ? "TRY"
+    : currency?.trim().toUpperCase() || "USD";
+
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: normalizedCurrency,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    // Research data can contain non-ISO currency labels. Rendering a persisted
+    // itinerary must stay resilient instead of crashing the whole workspace.
+    return `${value.toLocaleString("en-US")} ${normalizedCurrency}`;
+  }
 }
 
 export default function ItineraryView({ itinerary }: { itinerary: Itinerary }) {
