@@ -526,6 +526,19 @@ def main():
     print(f"JSON report: {json_path}")
     print(f"Markdown report: {md_path}")
 
+    execution_failures = [
+        failure
+        for suite in report["suites"].values()
+        for failure in suite["failures"]
+        if failure["metric"] == "execution"
+    ]
+    if execution_failures:
+        raise SystemExit(
+            "Eval execution failed for "
+            f"{len(execution_failures)} case run(s); "
+            "report was written but is not a valid baseline."
+        )
+
 
 if __name__ == "__main__":
     main()
