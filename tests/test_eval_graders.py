@@ -65,14 +65,22 @@ def test_grade_itinerary_checks_research_boundary_and_dates():
             },
         ]
     }
-    expected = {
+    trip_request = {
+        "destination": "Istanbul",
         "start_date": "2027-09-10",
         "duration_days": 2,
+        "travelers": 2,
         "budget": 100,
-        "eligible_activity_names": ["Basilica Cistern"],
     }
+    research = {
+        "activity_options": [{"name": "Basilica Cistern"}],
+        "flight_options": [],
+        "hotel_options": [],
+    }
+    itinerary["destination"] = "Istanbul"
+    itinerary["travelers"] = 2
 
-    result = grade_itinerary(itinerary, expected)
+    result = grade_itinerary(itinerary, trip_request, research)
 
     assert result["passed"] is True
     assert all(result["checks"].values())
@@ -87,13 +95,21 @@ def test_grade_itinerary_rejects_unresearched_activity():
             },
         ]
     }
-    expected = {
+    trip_request = {
+        "destination": "Istanbul",
         "start_date": "2027-09-10",
         "duration_days": 1,
-        "eligible_activity_names": [],
+        "travelers": 2,
     }
+    research = {
+        "activity_options": [],
+        "flight_options": [],
+        "hotel_options": [],
+    }
+    itinerary["destination"] = "Istanbul"
+    itinerary["travelers"] = 2
 
-    result = grade_itinerary(itinerary, expected)
+    result = grade_itinerary(itinerary, trip_request, research)
 
     assert result["passed"] is False
     assert result["unknown_named_activities"] == ["Invented Museum"]
