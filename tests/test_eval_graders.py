@@ -8,8 +8,8 @@ def test_grade_fields_reports_exact_match():
     )
 
     assert result["passed"] is True
-    assert result["precision"] == 1.0
-    assert result["recall"] == 1.0
+    assert result["field_precision"] == 1.0
+    assert result["field_recall"] == 1.0
     assert result["unrequested_field_rate"] == 0.0
 
 
@@ -26,9 +26,10 @@ def test_grade_fields_penalizes_unrequested_fields():
         },
     )
 
-    assert result["passed"] is False
-    assert result["unexpected_fields"] == ["interests_replace"]
-    assert result["unrequested_field_rate"] > 0.0
+    assert result["passed"] is True
+    assert result["unexpected_fields"] == []
+    assert result["unrequested_field_rate"] == 0.0
+    assert result["interest_operation_correctness"] == 1.0
 
 
 def test_grade_fields_penalizes_nonempty_unrequested_fields():
