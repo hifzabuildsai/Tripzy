@@ -1,0 +1,46 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-005",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Paris",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "Lahore",
+          "destination": "Paris"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Paris Eval Hotel",
+          "destination": "Paris"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Louvre Museum",
+          "destination": "Paris",
+          "category": "attraction"
+        },
+        {
+          "name": "Luxembourg Gardens",
+          "destination": "Paris",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}
