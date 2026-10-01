@@ -222,8 +222,11 @@ async def run_case(
 
     async with semaphore:
         try:
-            outcome = await _with_retry(
-                lambda: RUNNERS[case["suite"]](case)
+            outcome = await asyncio.wait_for(
+                _with_retry(
+                    lambda: RUNNERS[case["suite"]](case)
+                ),
+                timeout=90,
             )
             error = None
         except Exception as exc:
