@@ -10,6 +10,29 @@ Tripzy is a full-stack agentic travel planner that turns one natural-language mi
 
 > **Engineering thesis:** LLMs interpret intent and perform bounded reasoning. Deterministic Python owns application truth: state, workflow, validation, selective invalidation, persistence, and retry semantics.
 
+## Product preview
+
+<p align="center">
+  <img src="docs/images/tripzy-landing.webp" alt="Tripzy landing page" width="100%" />
+</p>
+
+<p align="center"><sub>One natural-language trip mission starts a durable planning workspace.</sub></p>
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/images/tripzy-discover.webp" alt="Tripzy destination research view" />
+      <br />
+      <sub><b>Discover:</b> structured destination research organized for the traveler.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/images/tripzy-itinerary.webp" alt="Tripzy structured itinerary view" />
+      <br />
+      <sub><b>Itinerary:</b> a persisted day-by-day plan built from the researched artifacts.</sub>
+    </td>
+  </tr>
+</table>
+
 ## Why this project matters
 
 Tripzy is deliberately not a chatbot wrapped around a travel prompt. It is an exercise in putting probabilistic AI inside deterministic software boundaries.
@@ -219,4 +242,4 @@ The browser receives only the public backend URL. Gemini, Tavily, and the privil
 
 M18.3 Final Production QA identified and fixed one selective-replanning regression: an AI-produced empty `interests_replace: []` can no longer erase unrelated existing interests during a budget-only correction.
 
-The remaining release work is portfolio/demo packaging followed by the final production release lock.
+M18.4 packages the shipped product for portfolio review with architecture, engineering evidence, demo guidance, metadata, and production screenshots. The remaining milestone is the final production release lock.
