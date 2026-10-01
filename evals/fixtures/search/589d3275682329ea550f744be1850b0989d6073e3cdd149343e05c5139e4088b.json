@@ -1,0 +1,46 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-004",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Rome",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "Dubai",
+          "destination": "Rome"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Rome Eval Hotel",
+          "destination": "Rome"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Colosseum",
+          "destination": "Rome",
+          "category": "attraction"
+        },
+        {
+          "name": "Trevi Fountain",
+          "destination": "Rome",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}
