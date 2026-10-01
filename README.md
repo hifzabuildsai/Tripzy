@@ -13,7 +13,7 @@ Tripzy is a full-stack agentic travel planner that turns one natural-language mi
 ## Product preview
 
 <p align="center">
-  <img src="docs/images/tripzy-landing.webp" alt="Tripzy landing page" width="100%" />
+  <img src="docs/images/tripzy-landing.png" alt="Tripzy landing page" width="100%" />
 </p>
 
 <p align="center"><sub>One natural-language trip mission starts a durable planning workspace.</sub></p>
