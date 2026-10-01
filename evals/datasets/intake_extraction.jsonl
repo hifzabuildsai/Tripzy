@@ -1,0 +1,40 @@
+{"id":"intake-001","suite":"intake_extraction","language":"en","input":{"messages":["From Karachi to Istanbul."]},"expected":{"fields":{"origin":"Karachi","destination":"Istanbul"}},"tags":[]}
+{"id":"intake-002","suite":"intake_extraction","language":"en","input":{"messages":["I want to travel from Lahore to Dubai."]},"expected":{"fields":{"origin":"Lahore","destination":"Dubai"}},"tags":[]}
+{"id":"intake-003","suite":"intake_extraction","language":"en","input":{"messages":["September 10, 2027 for 5 days."]},"expected":{"fields":{"start_date":"2027-09-10","duration_days":5}},"tags":[]}
+{"id":"intake-004","suite":"intake_extraction","language":"en","input":{"messages":["September 10 for 5 days."]},"expected":{"fields":{"start_date_text":"September 10","duration_days":5}},"tags":[]}
+{"id":"intake-005","suite":"intake_extraction","language":"en","input":{"messages":["September 2027 for five days."]},"expected":{"fields":{"start_date_text":"September 2027","duration_days":5}},"tags":[]}
+{"id":"intake-006","suite":"intake_extraction","language":"en","input":{"messages":["Two travelers."]},"expected":{"fields":{"travelers":2}},"tags":[]}
+{"id":"intake-007","suite":"intake_extraction","language":"en","input":{"messages":["My budget is $2,000."]},"expected":{"fields":{"budget":2000,"currency":"USD"}},"tags":[]}
+{"id":"intake-008","suite":"intake_extraction","language":"en","input":{"messages":["We like history and food."]},"expected":{"fields":{"interests":["history","food"]}},"tags":[]}
+{"id":"intake-009","suite":"intake_extraction","language":"en","input":{"messages":["Keep the pace relaxed."]},"expected":{"fields":{"travel_style":"relaxed"}},"tags":[]}
+{"id":"intake-010","suite":"intake_extraction","language":"en","input":{"messages":["Karachi to Istanbul on September 10, 2027 for 5 days, two travelers, $2000."]},"expected":{"fields":{"origin":"Karachi","destination":"Istanbul","start_date":"2027-09-10","duration_days":5,"travelers":2,"budget":2000,"currency":"USD"}},"tags":[]}
+{"id":"intake-011","suite":"intake_extraction","language":"en","input":{"messages":["From Islamabad to Tokyo, October 3, 2027, 7 days, 1 traveler."]},"expected":{"fields":{"origin":"Islamabad","destination":"Tokyo","start_date":"2027-10-03","duration_days":7,"travelers":1}},"tags":[]}
+{"id":"intake-012","suite":"intake_extraction","language":"en","input":{"messages":["We have a EUR 3000 budget."]},"expected":{"fields":{"budget":3000,"currency":"EUR"}},"tags":[]}
+{"id":"intake-013","suite":"intake_extraction","language":"en","input":{"messages":["Museums, architecture and photography interest us."]},"expected":{"fields":{"interests":["museums","architecture","photography"]}},"tags":[]}
+{"id":"intake-014","suite":"intake_extraction","language":"en","input":{"messages":["Make it a luxury trip."]},"expected":{"fields":{"travel_style":"luxury"}},"tags":[]}
+{"id":"intake-015","suite":"intake_extraction","language":"en","input":{"messages":["Starting December 1, 2028."]},"expected":{"fields":{"start_date":"2028-12-01"}},"tags":[]}
+{"id":"intake-016","suite":"intake_extraction","language":"en","input":{"messages":["End on December 8, 2028."]},"expected":{"fields":{"end_date":"2028-12-08"}},"tags":[]}
+{"id":"intake-017","suite":"intake_extraction","language":"en","input":{"messages":["A 4 day trip."]},"expected":{"fields":{"duration_days":4}},"tags":[]}
+{"id":"intake-018","suite":"intake_extraction","language":"en","input":{"messages":["There will be 3 of us."]},"expected":{"fields":{"travelers":3}},"tags":[]}
+{"id":"intake-019","suite":"intake_extraction","language":"en","input":{"messages":["From London to Barcelona."]},"expected":{"fields":{"origin":"London","destination":"Barcelona"}},"tags":[]}
+{"id":"intake-020","suite":"intake_extraction","language":"en","input":{"messages":["Food, culture, and nightlife."]},"expected":{"fields":{"interests":["food","culture","nightlife"]}},"tags":[]}
+{"id":"intake-021","suite":"intake_extraction","language":"en","input":{"messages":["Budget 1500 GBP."]},"expected":{"fields":{"budget":1500,"currency":"GBP"}},"tags":[]}
+{"id":"intake-022","suite":"intake_extraction","language":"en","input":{"messages":["November 2029."]},"expected":{"fields":{"start_date_text":"November 2029"}},"tags":[]}
+{"id":"intake-023","suite":"intake_extraction","language":"en","input":{"messages":["November 12."]},"expected":{"fields":{"start_date_text":"November 12"}},"tags":[]}
+{"id":"intake-024","suite":"intake_extraction","language":"en","input":{"messages":["Prefer a fast-paced trip."]},"expected":{"fields":{"travel_style":"fast-paced"}},"tags":[]}
+{"id":"intake-025","suite":"intake_extraction","language":"ur","input":{"messages":["ہم کراچی سے استنبول جانا چاہتے ہیں۔"]},"expected":{"fields":{"origin":"Karachi","destination":"Istanbul"}},"tags":["multilingual"]}
+{"id":"intake-026","suite":"intake_extraction","language":"ur","input":{"messages":["۱۰ ستمبر ۲۰۲۷ سے پانچ دن۔"]},"expected":{"fields":{"start_date":"2027-09-10","duration_days":5}},"tags":["multilingual"]}
+{"id":"intake-027","suite":"intake_extraction","language":"ur","input":{"messages":["ہم دو لوگ ہیں۔"]},"expected":{"fields":{"travelers":2}},"tags":["multilingual"]}
+{"id":"intake-028","suite":"intake_extraction","language":"ur","input":{"messages":["بجٹ 2000 USD ہے۔"]},"expected":{"fields":{"budget":2000,"currency":"USD"}},"tags":["multilingual"]}
+{"id":"intake-029","suite":"intake_extraction","language":"ur","input":{"messages":["ہمیں تاریخ اور کھانا پسند ہے۔"]},"expected":{"fields":{"interests":["history","food"]}},"tags":["multilingual"]}
+{"id":"intake-030","suite":"intake_extraction","language":"ur-Latn","input":{"messages":["Karachi se Istanbul jana hai."]},"expected":{"fields":{"origin":"Karachi","destination":"Istanbul"}},"tags":["multilingual"]}
+{"id":"intake-031","suite":"intake_extraction","language":"ur-Latn","input":{"messages":["10 September 2027 se 5 din."]},"expected":{"fields":{"start_date":"2027-09-10","duration_days":5}},"tags":["multilingual"]}
+{"id":"intake-032","suite":"intake_extraction","language":"ur-Latn","input":{"messages":["Hum 2 log hain aur budget $2000 hai."]},"expected":{"fields":{"travelers":2,"budget":2000,"currency":"USD"}},"tags":["multilingual"]}
+{"id":"intake-033","suite":"intake_extraction","language":"ur-Latn","input":{"messages":["history aur food pasand hai."]},"expected":{"fields":{"interests":["history","food"]}},"tags":["multilingual"]}
+{"id":"intake-034","suite":"intake_extraction","language":"ur-Latn","input":{"messages":["trip relaxed rakhna."]},"expected":{"fields":{"travel_style":"relaxed"}},"tags":["multilingual"]}
+{"id":"intake-035","suite":"intake_extraction","language":"ar","input":{"messages":["أريد السفر من كراتشي إلى إسطنبول."]},"expected":{"fields":{"origin":"Karachi","destination":"Istanbul"}},"tags":["multilingual"]}
+{"id":"intake-036","suite":"intake_extraction","language":"ar","input":{"messages":["ميزانيتي 2000 دولار."]},"expected":{"fields":{"budget":2000,"currency":"USD"}},"tags":["multilingual"]}
+{"id":"intake-037","suite":"intake_extraction","language":"hi","input":{"messages":["मैं कराची से इस्तांबुल जाना चाहती हूँ।"]},"expected":{"fields":{"origin":"Karachi","destination":"Istanbul"}},"tags":["multilingual"]}
+{"id":"intake-038","suite":"intake_extraction","language":"tr","input":{"messages":["Karaçi'den İstanbul'a gitmek istiyorum."]},"expected":{"fields":{"origin":"Karachi","destination":"Istanbul"}},"tags":["multilingual"]}
+{"id":"intake-039","suite":"intake_extraction","language":"es","input":{"messages":["Quiero viajar de Karachi a Estambul."]},"expected":{"fields":{"origin":"Karachi","destination":"Istanbul"}},"tags":["multilingual"]}
+{"id":"intake-040","suite":"intake_extraction","language":"es","input":{"messages":["Somos dos viajeros y tenemos un presupuesto de 2000 USD."]},"expected":{"fields":{"travelers":2,"budget":2000,"currency":"USD"}},"tags":["multilingual"]}
