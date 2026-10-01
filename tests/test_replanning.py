@@ -211,6 +211,21 @@ def test_interest_replace_is_explicit_and_deduplicated() -> None:
     assert applied.request.interests == ["Food", "architecture"]
 
 
+def test_empty_interest_replace_preserves_unrelated_interests() -> None:
+    current = completed_state().request
+    applied = apply_correction(
+        current,
+        TripCorrection(
+            budget=3000,
+            interests_replace=[],
+        ),
+    )
+
+    assert applied.request.budget == 3000
+    assert applied.request.interests == current.interests
+    assert applied.changed_fields == {"budget"}
+
+
 def test_dependency_graph_matches_real_service_inputs() -> None:
     assert invalidated_artifacts({"origin"}) == (
         "flight_options",
