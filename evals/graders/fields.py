@@ -21,7 +21,7 @@ def grade_fields(
     actual_keys = {
         key
         for key, value in actual.items()
-        if value not in (None, [], {})
+        if value is not None
     }
 
     matched = {
