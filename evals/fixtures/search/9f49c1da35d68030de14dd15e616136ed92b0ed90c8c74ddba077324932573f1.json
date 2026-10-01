@@ -1,0 +1,46 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-010",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Vienna",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "Doha",
+          "destination": "Vienna"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Vienna Eval Hotel",
+          "destination": "Vienna"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Schönbrunn Palace",
+          "destination": "Vienna",
+          "category": "attraction"
+        },
+        {
+          "name": "Belvedere Museum",
+          "destination": "Vienna",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}
