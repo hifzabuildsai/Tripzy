@@ -1,8 +1,7 @@
 from agents import function_tool
-from tavily import TavilyClient
 
-from app.config import TAVILY_API_KEY
 from app.logging_config import logger
+from app.tools.search_client import search
 
 
 @function_tool
@@ -22,10 +21,6 @@ def search_activity_information(
     This is a research tool, not a live ticketing,
     availability, or booking provider.
     """
-
-    client = TavilyClient(
-        api_key=TAVILY_API_KEY
-    )
 
     interests = interests or []
     neighborhoods = neighborhoods or []
@@ -69,7 +64,7 @@ def search_activity_information(
         query_parts
     )
 
-    response = client.search(
+    response = search(
         query=query,
         search_depth="advanced",
         max_results=7,
