@@ -90,6 +90,11 @@ Destination, flight, hotel, and activity research produce structured candidates.
 
 ## Architecture
 
+![Tripzy System Architecture](docs/images/tripzy-system-architecture.png)
+
+Tripzy follows a simple architectural rule:
+...
+
 ```text
 Browser / Next.js
        |
