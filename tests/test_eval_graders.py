@@ -26,8 +26,9 @@ def test_grade_fields_penalizes_unrequested_fields():
         },
     )
 
-    assert result["passed"] is True
-    assert result["unrequested_field_rate"] == 0.0
+    assert result["passed"] is False
+    assert result["unexpected_fields"] == ["interests_replace"]
+    assert result["unrequested_field_rate"] > 0.0
 
 
 def test_grade_fields_penalizes_nonempty_unrequested_fields():
