@@ -12,6 +12,7 @@ from app.models.state import TripState
 from app.models.trip import TripRequest
 from app.services.conversation import ConversationService
 from app.services.itinerary_planning import ItineraryPlannerService
+from app.tools.search_client import search
 from evals.graders import grade_fields, grade_itinerary
 
 
@@ -25,22 +26,47 @@ SUITES = (
     "itinerary_invariants",
 )
 
+SUITE_METRICS = {
+    "intake_extraction": (
+        "field_precision",
+        "field_recall",
+        "unrequested_field_rate",
+    ),
+    "correction_extraction": (
+        "exact_match",
+        "unrequested_field_rate",
+        "interest_operation_correctness",
+    ),
+    "itinerary_invariants": (
+        "day_count_equals_duration",
+        "dates_contiguous",
+        "destination_matches",
+        "travelers_match",
+        "named_activities_researched",
+        "candidates_not_selected",
+        "budget_adherence_when_exposed",
+    ),
+}
+
 
 def load_cases(suite: str) -> list[dict[str, Any]]:
     path = DATASET_DIR / f"{suite}.jsonl"
     cases = []
+
     for line_number, raw in enumerate(
         path.read_text(encoding="utf-8").splitlines(),
         start=1,
     ):
         if not raw.strip():
             continue
+
         case = json.loads(raw)
         if case.get("suite") != suite:
             raise ValueError(
                 f"{path.name}:{line_number} has the wrong suite."
             )
         cases.append(case)
+
     return cases
 
 
@@ -66,6 +92,7 @@ async def _with_retry(factory, attempts: int = 4):
             if not _is_rate_limit(error) or attempt == attempts - 1:
                 raise
             await asyncio.sleep(2 ** attempt)
+
     raise RuntimeError("unreachable")
 
 
@@ -90,10 +117,21 @@ async def run_intake(case: dict[str, Any]) -> dict[str, Any]:
     for message in case["input"]["messages"]:
         await service.process_message(message)
 
-    return grade_fields(
+    grade = grade_fields(
         captured,
         case["expected"]["fields"],
-    ) | {"actual": captured}
+    )
+
+    return {
+        "passed": grade["passed"],
+        "metrics": {
+            "field_precision": grade["field_precision"],
+            "field_recall": grade["field_recall"],
+            "unrequested_field_rate": grade["unrequested_field_rate"],
+        },
+        "actual": captured,
+        "expected": case["expected"]["fields"],
+    }
 
 
 async def run_correction(case: dict[str, Any]) -> dict[str, Any]:
@@ -102,29 +140,70 @@ async def run_correction(case: dict[str, Any]) -> dict[str, Any]:
         status="itinerary_planned",
     )
     service = ConversationService(state=state)
+
     correction = await service._interpret_correction(
-        case["input"]["utterance"]
+        case["input"]["message"]
     )
     actual = correction.model_dump(
         exclude_none=True,
         exclude_defaults=True,
     )
+    expected = case["expected"]["correction"]
+    grade = grade_fields(actual, expected)
 
-    return grade_fields(
-        actual,
-        case["expected"]["fields"],
-    ) | {"actual": actual}
+    return {
+        "passed": grade["passed"],
+        "metrics": {
+            "exact_match": grade["exact_match"],
+            "unrequested_field_rate": grade["unrequested_field_rate"],
+            "interest_operation_correctness": (
+                grade["interest_operation_correctness"]
+            ),
+        },
+        "actual": actual,
+        "expected": expected,
+    }
 
 
 async def run_itinerary(case: dict[str, Any]) -> dict[str, Any]:
-    state = TripState.model_validate(case["input"]["state"])
+    fixture_response = search(
+        f"eval itinerary research {case['id']}",
+        fixture_type="itinerary_research",
+    )
+    research = fixture_response.get("research")
+
+    if not isinstance(research, dict):
+        raise ValueError(
+            f"Replay research fixture is invalid for {case['id']}."
+        )
+
+    trip_request = case["input"]["trip_request"]
+    state = TripState.model_validate({
+        "request": trip_request,
+        "destination_research": research.get("destination_research"),
+        "flight_options": research.get("flight_options", []),
+        "hotel_options": research.get("hotel_options", []),
+        "activity_options": research.get("activity_options", []),
+        "status": "activities_researched",
+    })
+
     itinerary = await ItineraryPlannerService().build_itinerary(state)
     actual = itinerary.model_dump()
-
-    return grade_itinerary(
+    grade = grade_itinerary(
         actual,
-        case["expected"],
-    ) | {"actual": actual}
+        trip_request,
+        research,
+    )
+
+    return {
+        "passed": grade["passed"],
+        "metrics": {
+            key: 1.0 if value else 0.0
+            for key, value in grade["checks"].items()
+        },
+        "actual": actual,
+        "expected": case["expected"]["assertions"],
+    }
 
 
 RUNNERS = {
@@ -140,14 +219,20 @@ async def run_case(
     semaphore: asyncio.Semaphore,
 ) -> dict[str, Any]:
     started = time.monotonic()
+
     async with semaphore:
         try:
-            result = await _with_retry(
+            outcome = await _with_retry(
                 lambda: RUNNERS[case["suite"]](case)
             )
             error = None
         except Exception as exc:
-            result = {"passed": False}
+            outcome = {
+                "passed": False,
+                "metrics": {},
+                "expected": None,
+                "actual": None,
+            }
             error = f"{type(exc).__name__}: {exc}"
 
     return {
@@ -157,54 +242,154 @@ async def run_case(
         "repeat": repeat_index + 1,
         "tags": case.get("tags", []),
         "duration_ms": round((time.monotonic() - started) * 1000),
-        "passed": bool(result.get("passed")),
-        "metrics": {
-            key: value
-            for key, value in result.items()
-            if key not in {"actual", "passed"}
-        },
-        "actual": result.get("actual"),
+        "passed": bool(outcome["passed"]),
+        "metrics": outcome["metrics"],
+        "expected": outcome["expected"],
+        "actual": outcome["actual"],
         "error": error,
     }
 
 
-def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
-    suites: dict[str, Any] = {}
-    for suite in SUITES:
-        suite_results = [r for r in results if r["suite"] == suite]
-        if not suite_results:
+def _metric_target(metric: str) -> float:
+    return 0.0 if metric == "unrequested_field_rate" else 1.0
+
+
+def _metric_failed(metric: str, value: float) -> bool:
+    target = _metric_target(metric)
+    return value > target if target == 0.0 else value < target
+
+
+def _suite_report(
+    suite: str,
+    results: list[dict[str, Any]],
+    repeat_count: int,
+) -> dict[str, Any]:
+    suite_results = [item for item in results if item["suite"] == suite]
+    metrics = SUITE_METRICS[suite]
+    repeat_aggregates: dict[str, list[float]] = {
+        metric: []
+        for metric in metrics
+    }
+    repeat_pass_rates: list[float] = []
+
+    for repeat in range(1, repeat_count + 1):
+        items = [
+            item
+            for item in suite_results
+            if item["repeat"] == repeat
+        ]
+        repeat_pass_rates.append(
+            sum(1 for item in items if item["passed"]) / len(items)
+        )
+
+        for metric in metrics:
+            values = [
+                float(item["metrics"][metric])
+                for item in items
+                if metric in item["metrics"]
+            ]
+            repeat_aggregates[metric].append(
+                statistics.mean(values) if values else 0.0
+            )
+
+    failures = []
+    for item in suite_results:
+        if item["error"]:
+            failures.append({
+                "case_id": item["id"],
+                "repeat": item["repeat"],
+                "metric": "execution",
+                "expected": "success",
+                "actual": item["error"],
+            })
             continue
 
-        repeats = sorted({r["repeat"] for r in suite_results})
-        repeat_scores = []
-        for repeat in repeats:
-            items = [r for r in suite_results if r["repeat"] == repeat]
-            repeat_scores.append(
-                sum(1 for item in items if item["passed"]) / len(items)
-            )
+        for metric in metrics:
+            value = float(item["metrics"][metric])
+            if _metric_failed(metric, value):
+                failures.append({
+                    "case_id": item["id"],
+                    "repeat": item["repeat"],
+                    "metric": metric,
+                    "expected": _metric_target(metric),
+                    "actual": value,
+                })
 
-        suites[suite] = {
-            "runs": len(suite_results),
-            "cases_per_repeat": len(suite_results) // len(repeats),
-            "pass_rate_mean": statistics.mean(repeat_scores),
-            "pass_rate_min": min(repeat_scores),
-            "repeat_pass_rates": repeat_scores,
-            "failed_case_ids": sorted({
-                r["id"] for r in suite_results if not r["passed"]
-            }),
+    metric_contract = {
+        metric: {
+            "target": _metric_target(metric),
+            "direction": (
+                "lower" if metric == "unrequested_field_rate" else "higher"
+            ),
         }
+        for metric in metrics
+    }
+    metric_contract["pass_rate"] = {
+        "target": 1.0,
+        "direction": "higher",
+    }
 
-        if suite in {"intake_extraction", "correction_extraction"}:
-            requested = [
-                r["metrics"].get("unrequested_field_rate", 0.0)
-                for r in suite_results
-                if not r["error"]
-            ]
-            suites[suite]["unrequested_field_rate_mean"] = (
-                statistics.mean(requested) if requested else None
-            )
+    mean = {
+        metric: statistics.mean(values)
+        for metric, values in repeat_aggregates.items()
+    }
+    minimum = {
+        metric: min(values)
+        for metric, values in repeat_aggregates.items()
+    }
+    mean["pass_rate"] = statistics.mean(repeat_pass_rates)
+    minimum["pass_rate"] = min(repeat_pass_rates)
 
-    return suites
+    return {
+        "case_count": len(suite_results) // repeat_count,
+        "repeat_count": repeat_count,
+        "metrics": metric_contract,
+        "mean": mean,
+        "min": minimum,
+        "failures": failures,
+    }
+
+
+def build_report(
+    results: list[dict[str, Any]],
+    suites: tuple[str, ...],
+    repeat_count: int,
+    search_mode: str,
+) -> dict[str, Any]:
+    suite_reports = {
+        suite: _suite_report(
+            suite,
+            results,
+            repeat_count,
+        )
+        for suite in suites
+    }
+
+    repeat_pass_rates = []
+    for repeat in range(1, repeat_count + 1):
+        items = [item for item in results if item["repeat"] == repeat]
+        repeat_pass_rates.append(
+            sum(1 for item in items if item["passed"]) / len(items)
+        )
+
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "model": os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+        "search_mode": search_mode,
+        "repeat": repeat_count,
+        "suites": suite_reports,
+        "overall": {
+            "case_count": len(results) // repeat_count,
+            "repeat_count": repeat_count,
+            "mean": {
+                "pass_rate": statistics.mean(repeat_pass_rates),
+            },
+            "min": {
+                "pass_rate": min(repeat_pass_rates),
+            },
+        },
+    }
 
 
 def markdown_report(report: dict[str, Any]) -> str:
@@ -215,41 +400,44 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- Search mode: `{report['search_mode']}`",
         f"- Repeats: {report['repeat']}",
         "",
-        "| Suite | Mean pass | Min pass | Unrequested fields | Failed cases |",
+        "| Suite | Cases | Mean pass | Min pass | Failures |",
         "|---|---:|---:|---:|---:|",
     ]
 
-    for suite, summary in report["summary"].items():
-        unrequested = summary.get("unrequested_field_rate_mean")
-        unrequested_text = (
-            f"{unrequested * 100:.1f}%" if unrequested is not None else "—"
-        )
+    for suite, data in report["suites"].items():
         lines.append(
             "| "
             + " | ".join([
                 suite,
-                f"{summary['pass_rate_mean'] * 100:.1f}%",
-                f"{summary['pass_rate_min'] * 100:.1f}%",
-                unrequested_text,
-                str(len(summary["failed_case_ids"])),
+                str(data["case_count"]),
+                f"{data['mean']['pass_rate'] * 100:.1f}%",
+                f"{data['min']['pass_rate'] * 100:.1f}%",
+                str(len(data["failures"])),
             ])
             + " |"
         )
 
-    failures = [result for result in report["results"] if not result["passed"]]
-    lines.extend(["", "## Per-case failures", ""])
+    lines.extend([
+        "",
+        "## Per-case failures",
+        "",
+    ])
+
+    failures = [
+        (suite, failure)
+        for suite, data in report["suites"].items()
+        for failure in data["failures"]
+    ]
+
     if not failures:
         lines.append("None.")
     else:
-        for failure in failures:
-            detail = failure["error"] or json.dumps(
-                failure["metrics"],
-                ensure_ascii=False,
-                sort_keys=True,
-            )
+        for suite, failure in failures:
             lines.append(
-                f"- `{failure['id']}` repeat {failure['repeat']} "
-                f"({failure['language']}): {detail}"
+                f"- `{failure['case_id']}` repeat {failure['repeat']} "
+                f"({suite}) — {failure['metric']}: expected "
+                f"`{failure['expected']}`, actual "
+                f"`{failure['actual']}`"
             )
 
     return "\n".join(lines) + "\n"
@@ -273,20 +461,18 @@ async def async_main(args) -> dict[str, Any]:
     ]
     results = await asyncio.gather(*tasks)
 
-    return {
-        "schema_version": 1,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "model": os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
-        "search_mode": args.search_mode,
-        "repeat": args.repeat,
-        "concurrency": args.concurrency,
-        "summary": summarize(results),
-        "results": results,
-    }
+    return build_report(
+        results=results,
+        suites=suites,
+        repeat_count=args.repeat,
+        search_mode=args.search_mode,
+    )
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run Tripzy evaluation suites.")
+    parser = argparse.ArgumentParser(
+        description="Run Tripzy evaluation suites."
+    )
     parser.add_argument(
         "--suite",
         choices=("all",) + SUITES,
@@ -319,7 +505,8 @@ def main():
         args.output
         if args.output
         else REPORT_DIR / (
-            f"{args.suite}-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+            f"{args.suite}-"
+            f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
         )
     )
     json_path = stem.with_suffix(".json")
@@ -330,9 +517,12 @@ def main():
         json.dumps(report, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
-    md_path.write_text(markdown_report(report), encoding="utf-8")
+    md_path.write_text(
+        markdown_report(report),
+        encoding="utf-8",
+    )
 
-    print(json.dumps(report["summary"], indent=2))
+    print(json.dumps(report["suites"], indent=2))
     print(f"JSON report: {json_path}")
     print(f"Markdown report: {md_path}")
 
