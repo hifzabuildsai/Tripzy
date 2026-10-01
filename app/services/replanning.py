@@ -253,14 +253,18 @@ def _apply_interest_operations(
     current: list[str],
     correction: TripCorrection,
 ) -> list[str]:
+    # Models may emit an empty replacement list even when the user did not
+    # ask to change interests. Treat that empty list as omitted so unrelated
+    # corrections cannot silently erase the existing interests. Explicit
+    # non-empty replacement and add/remove operations still apply normally.
     if (
-        correction.interests_replace is None
+        not correction.interests_replace
         and not correction.interests_add
         and not correction.interests_remove
     ):
         return list(current)
 
-    if correction.interests_replace is not None:
+    if correction.interests_replace:
         interests = _unique_interests(correction.interests_replace)
     else:
         interests = _unique_interests(current)
