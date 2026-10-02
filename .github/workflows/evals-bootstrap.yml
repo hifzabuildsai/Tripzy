@@ -1,7 +1,12 @@
 name: M19.1 baseline bootstrap
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - m19-1-evals
+    paths:
+      - ".github/workflows/evals-bootstrap.yml"
+      - "evals/run.py"
 
 permissions:
   contents: write
