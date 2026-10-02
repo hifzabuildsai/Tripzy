@@ -217,10 +217,20 @@ async def run_case(
     case: dict[str, Any],
     repeat_index: int,
     semaphore: asyncio.Semaphore,
+    request_interval: float,
+    rate_gate: dict[str, float],
+    rate_lock: asyncio.Lock,
 ) -> dict[str, Any]:
     started = time.monotonic()
 
     async with semaphore:
+        if request_interval > 0:
+            async with rate_lock:
+                now = time.monotonic()
+                wait_for = max(0.0, rate_gate["next_at"] - now)
+                if wait_for:
+                    await asyncio.sleep(wait_for)
+                rate_gate["next_at"] = time.monotonic() + request_interval
         try:
             outcome = await asyncio.wait_for(
                 _with_retry(
@@ -457,8 +467,17 @@ async def async_main(args) -> dict[str, Any]:
     ]
 
     semaphore = asyncio.Semaphore(args.concurrency)
+    rate_lock = asyncio.Lock()
+    rate_gate = {"next_at": 0.0}
     tasks = [
-        run_case(case, repeat_index, semaphore)
+        run_case(
+            case,
+            repeat_index,
+            semaphore,
+            args.request_interval,
+            rate_gate,
+            rate_lock,
+        )
         for repeat_index in range(args.repeat)
         for case in cases
     ]
@@ -488,6 +507,7 @@ def parse_args():
     )
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--concurrency", type=int, default=2)
+    parser.add_argument("--request-interval", type=float, default=0.0)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
@@ -495,6 +515,8 @@ def parse_args():
         parser.error("--repeat must be >= 1")
     if args.concurrency < 1 or args.concurrency > 2:
         parser.error("--concurrency must be 1 or 2")
+    if args.request_interval < 0:
+        parser.error("--request-interval must be >= 0")
 
     return args
 
@@ -512,8 +534,8 @@ def main():
             f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
         )
     )
-    json_path = stem.with_suffix(".json")
-    md_path = stem.with_suffix(".md")
+    json_path = Path(f"{stem}.json")
+    md_path = Path(f"{stem}.md")
 
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(
