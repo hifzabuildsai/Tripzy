@@ -5,7 +5,7 @@ on:
     branches:
       - m19-1-evals
     paths:
-      - ".github/workflows/evals-bootstrap.yml"
+      - ".github/workflows/evals-bootstrap.yml"\n      - "evals/run.py"
 
 permissions:
   contents: write
