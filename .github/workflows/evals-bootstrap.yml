@@ -5,7 +5,8 @@ on:
     branches:
       - m19-1-evals
     paths:
-      - ".github/workflows/evals-bootstrap.yml"\n      - "evals/run.py"
+      - ".github/workflows/evals-bootstrap.yml"
+      - "evals/run.py"
 
 permissions:
   contents: write
@@ -13,7 +14,7 @@ permissions:
 jobs:
   baseline:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Check out repository
@@ -39,9 +40,10 @@ jobs:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           TRIPZY_SEARCH_MODE: replay
         run: |
-          python -m evals.run             --suite all             --search-mode replay             --repeat 3             --concurrency 2             --output evals/reports/v1.0.0
+          python -m evals.run --suite all --search-mode replay --repeat 3 --concurrency 1 --output evals/reports/v1.0.0
 
       - name: Commit baseline to milestone branch
+        if: success()
         run: |
           cp evals/reports/v1.0.0.json evals/baselines/v1.0.0.json
           git config user.name "github-actions[bot]"
