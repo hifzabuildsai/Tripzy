@@ -91,7 +91,7 @@ async def _with_retry(factory, attempts: int = 4):
         except Exception as error:
             if not _is_rate_limit(error) or attempt == attempts - 1:
                 raise
-            await asyncio.sleep(2 ** attempt)
+            # Gemini free-tier RPM errors include retry delays around 30s.\n            # A short exponential retry (1/2/4s) only re-hits the same window.\n            await asyncio.sleep(35)
 
     raise RuntimeError("unreachable")
 
