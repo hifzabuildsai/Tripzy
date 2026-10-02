@@ -1,8 +1,7 @@
 from agents import function_tool
-from tavily import TavilyClient
 
-from app.config import TAVILY_API_KEY
 from app.logging_config import logger
+from app.tools.search_client import search
 
 
 @function_tool
@@ -25,10 +24,6 @@ def search_hotel_information(
     room availability or guaranteed prices.
     """
 
-    client = TavilyClient(
-        api_key=TAVILY_API_KEY
-    )
-
     date_context = (
         f"check-in {check_in_date}"
     )
@@ -45,7 +40,7 @@ def search_hotel_information(
         "hotel prices neighborhoods ratings accommodation"
     )
 
-    response = client.search(
+    response = search(
         query=query,
         search_depth="advanced",
         max_results=5,

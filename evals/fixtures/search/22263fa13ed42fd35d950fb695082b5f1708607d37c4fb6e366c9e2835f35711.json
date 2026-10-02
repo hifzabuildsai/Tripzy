@@ -1,0 +1,46 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-009",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Lisbon",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "London",
+          "destination": "Lisbon"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Lisbon Eval Hotel",
+          "destination": "Lisbon"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Belém Tower",
+          "destination": "Lisbon",
+          "category": "attraction"
+        },
+        {
+          "name": "Jerónimos Monastery",
+          "destination": "Lisbon",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}

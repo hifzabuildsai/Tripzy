@@ -1,0 +1,46 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-008",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Madrid",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "Karachi",
+          "destination": "Madrid"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Madrid Eval Hotel",
+          "destination": "Madrid"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Prado Museum",
+          "destination": "Madrid",
+          "category": "attraction"
+        },
+        {
+          "name": "Retiro Park",
+          "destination": "Madrid",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}

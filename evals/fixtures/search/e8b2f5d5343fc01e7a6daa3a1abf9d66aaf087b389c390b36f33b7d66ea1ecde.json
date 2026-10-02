@@ -1,0 +1,41 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-007",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Istanbul",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "Dubai",
+          "destination": "Istanbul"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Istanbul Eval Hotel",
+          "destination": "Istanbul"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Galata Tower",
+          "destination": "Istanbul",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}

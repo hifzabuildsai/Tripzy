@@ -1,0 +1,65 @@
+name: Tripzy evals
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Eval suite to run
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - intake_extraction
+          - correction_extraction
+          - itinerary_invariants
+      repeat:
+        description: Number of repeats
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "3"
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
+
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --require-hashes --requirement requirements.lock
+
+      - name: Run eval suite
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          TRIPZY_SEARCH_MODE: replay
+        run: |
+          python -m evals.run             --suite "${{ inputs.suite }}"             --search-mode replay             --repeat "${{ inputs.repeat }}"             --concurrency 2             --output evals/reports/eval
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tripzy-eval-report-${{ github.run_id }}
+          path: |
+            evals/reports/eval.json
+            evals/reports/eval.md
+          if-no-files-found: error
