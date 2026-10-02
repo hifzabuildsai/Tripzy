@@ -1,12 +1,7 @@
 name: M19.1 baseline bootstrap
 
 on:
-  push:
-    branches:
-      - m19-1-evals
-    paths:
-      - ".github/workflows/evals-bootstrap.yml"
-      - "evals/run.py"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -40,7 +35,7 @@ jobs:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           TRIPZY_SEARCH_MODE: replay
         run: |
-          python -m evals.run --suite all --search-mode replay --repeat 3 --concurrency 1 --output evals/reports/v1.0.0
+          python -m evals.run --suite all --search-mode replay --repeat 3 --concurrency 1 --request-interval 4.2 --output evals/reports/v1.0.0
 
       - name: Commit baseline to milestone branch
         if: success()
