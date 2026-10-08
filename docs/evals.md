@@ -150,3 +150,5 @@ locked dependencies. These are local boundary measurements, not an assertion
 of an identical deployed runtime or verified real-world travel quality.
 
 P2 production acceptance: [verification record](p2-demo-acceptance.md).
+
+P3 portfolio package: [engineering case study](portfolio-story.md) and [production capture notes](images/README.md).

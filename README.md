@@ -4,16 +4,16 @@
 
 **Give me the trip. I’ll take it from here.**
 
-Tripzy is a full-stack agentic travel planner that turns one natural-language mission into persisted requirements, researched travel options, activities, and a structured day-by-day itinerary.
+Tripzy is a shipped portfolio project by Hifza: a full-stack agentic travel planner that turns a natural-language mission into a durable trip workspace, researched candidates, and a structured day-by-day itinerary.
 
-**Live product:** https://tripzy-liard.vercel.app · **API health:** https://tripzy-api-production.up.railway.app/health
+**[Try the demo](https://tripzy-liard.vercel.app)** · [Engineering case study](docs/portfolio-story.md) · [Verified demo acceptance](docs/p2-demo-acceptance.md) · [Model evaluation evidence](docs/evals.md)
 
 > **Engineering thesis:** LLMs interpret intent and perform bounded reasoning. Deterministic Python owns application truth: state, workflow, validation, selective invalidation, persistence, and retry semantics.
 
 ## Product preview
 
 <p align="center">
-  <img src="docs/images/tripzy-landing.png" alt="Tripzy landing page" width="100%" />
+  <img src="docs/images/tripzy-p3-landing.jpg" alt="Tripzy landing page" width="100%" />
 </p>
 
 <p align="center"><sub>One natural-language trip mission starts a durable planning workspace.</sub></p>
@@ -21,21 +21,27 @@ Tripzy is a full-stack agentic travel planner that turns one natural-language mi
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/images/tripzy-discover.webp" alt="Tripzy destination research view" />
+      <img src="docs/images/tripzy-p3-discover.jpg" alt="Tripzy destination research view" />
       <br />
       <sub><b>Discover:</b> structured destination research organized for the traveler.</sub>
     </td>
     <td width="50%">
-      <img src="docs/images/tripzy-itinerary.webp" alt="Tripzy structured itinerary view" />
+      <img src="docs/images/tripzy-p3-itinerary.jpg" alt="Tripzy structured itinerary view" />
       <br />
       <sub><b>Itinerary:</b> a persisted day-by-day plan built from the researched artifacts.</sub>
     </td>
   </tr>
 </table>
 
+<details>
+  <summary>Mobile itinerary preview</summary>
+  <p><img src="docs/images/tripzy-p3-mobile.jpg" alt="Tripzy itinerary at a 390-pixel mobile viewport" width="390" /></p>
+</details>
+
+Production captures from October 8, 2026, using the synthetic QA trip. These show researched planning output, not confirmed bookings. [Capture notes](docs/images/README.md).
 ## Why this project matters
 
-Tripzy is deliberately not a chatbot wrapped around a travel prompt. It is an exercise in putting probabilistic AI inside deterministic software boundaries.
+The engineering challenge is keeping a persistent plan coherent when interpretation, external search, or a revision fails. Tripzy separates model decisions from application state, then validates and saves the result at explicit boundaries.
 
 A traveler can describe a trip naturally, answer consolidated clarification when information is missing, refresh or reopen the durable trip URL, and later correct only part of the plan. Tripzy determines which downstream artifacts are affected and rebuilds only those dependencies.
 
@@ -78,7 +84,7 @@ The model can interpret a mission or correction, but it does not own `TripState`
 
 ### Selective replanning
 
-Corrections are converted into structured changes. A centralized dependency graph maps changed request fields to invalidated artifacts. For example, a budget change rebuilds the hotel options and itinerary; it does not silently replace unrelated interests. Destination changes invalidate the full destination-dependent chain.
+Corrections are converted into structured changes. A centralized dependency graph maps changed request fields to invalidated artifacts. For example, a budget change rebuilds the hotel options and itinerary; the application preserves interests when they are not part of the extracted correction. Model extraction can still introduce unrequested fields; the evaluation below measures that remaining limitation. Destination changes invalidate the full destination-dependent chain.
 
 ### Failure-safe persistence
 
@@ -92,8 +98,6 @@ Destination, flight, hotel, and activity research produce structured candidates.
 
 ![Tripzy System Architecture](docs/images/tripzy-system-architecture.png)
 
-Tripzy follows a simple architectural rule:
-...
 
 ```text
 Browser / Next.js
@@ -135,7 +139,7 @@ Production is split across **Vercel** (Next.js), **Railway** (Dockerized FastAPI
 | Research | Tavily |
 | Persistence | Supabase PostgreSQL, JSONB, RLS |
 | Delivery | Docker, Railway, Vercel, GitHub Actions |
-| Quality | pytest, Vitest, ESLint, pip-audit, npm audit, Gitleaks |
+| Quality | pytest, Vitest, ESLint, pip-audit, reviewed npm audit policy, Gitleaks |
 
 ## Run locally
 
@@ -147,7 +151,7 @@ cd Tripzy
 python -m venv .venv
 ```
 
-Activate the environment, then install the locked runtime plus the test runner:
+Activate the environment. Production and CI use Python 3.12 on Linux; the lockfile includes Linux-only dependencies such as uvloop. Use Linux/WSL for this locked install. For a Windows development environment, use `python -m pip install -e ".[dev]"` instead; that resolves the development dependencies rather than reproducing the Linux lockfile.
 
 ```bash
 python -m pip install --require-hashes --requirement requirements.lock
@@ -203,7 +207,21 @@ The Release gate runs on pull requests and pushes to `main` and verifies:
 - non-root image/runtime execution
 - container startup and `/health`
 
-Production acceptance has also exercised durable refresh/direct URLs, real research workflows, selective replanning, controlled failure preservation, and retry on the same trip ID.
+[October 8 production acceptance](docs/p2-demo-acceptance.md) exercised a fresh five-day Istanbul plan, missing-detail clarification, refresh/direct URLs, desktop/mobile views, and a budget-only correction. Canonical before/after state showed only budget changed; destination research, flights and activities stayed identical while hotels and itinerary changed. Failure preservation and safe retry were checked with controlled regressions; the public service was not deliberately broken.
+
+The existing regression suites contain **115 backend tests, 26 frontend tests and five audit-policy tests**. These counts establish regression coverage, not model accuracy. The frontend audit acknowledges one narrowly scoped dev-only braces advisory exception, expiring November 8, 2026; [the audit policy](docs/evals.md#release-gate-dependency-maintenance) documents its boundary.
+
+### Measured model boundary
+
+The [recorded portfolio baseline](evals/baselines/v1.0.0.md) uses 60 fixed cases × three repeats = 180 trials against Gemini, with synthetic search replay.
+
+| Suite | Trials | Mean exact trial pass | Worst repeat |
+| --- | --- | --- | --- |
+| Intake extraction | 60 | 63.3% | 60.0% |
+| Correction extraction | 90 | 90.0% | 90.0% |
+| Itinerary invariants | 30 | 100.0% | 100.0% |
+
+Intake precision was 85.8% and recall 78.5%. Correction unrequested-field fraction averaged 3.89%; the earlier 2% target was not met. One provider failure was recovered by resuming only that trial; quality failures and execution history were retained. Budget adherence was **unmeasured**, because comparable item costs were absent. These are local model-boundary measurements with a different Python/provider-library environment from production, not a live end-to-end travel benchmark. [Method, environment and failure examples](docs/evals.md).
 
 The public demo includes bounded request/message sizes, a process-local write rate limit, bounded concurrent planning, planning timeout, exact-origin production CORS, redacted logging, production security headers, and disabled production OpenAPI/docs. These are demo safeguards rather than an authentication, WAF, or distributed quota system.
 
@@ -243,8 +261,18 @@ See [docs/deployment.md](docs/deployment.md) for the Railway/Vercel environment 
 
 The browser receives only the public backend URL. Gemini, Tavily, and the privileged Supabase credential remain server-side. The `trips` table has RLS enabled with no direct anon/authenticated read policy; the trusted backend persistence layer is the database boundary.
 
+## Limitations and intended use
+
+- Travel results are research candidates. Prices, availability, opening hours, transit timing and a complete trip budget are not guaranteed; the live check found missing prices and mixed currencies.
+- Extraction remains probabilistic. Partial-date over-specification, multilingual place-name mismatches and unrequested correction fields appear in the baseline. Multilingual support is not a shipped promise. Missing default-USD extraction evidence does not mean canonical state lost its USD default.
+- The public demo has no account authentication or per-user authorization. Anyone with a trip URL can read or revise that trip. Use synthetic examples rather than sensitive travel details. Database RLS blocks direct client access; it does not authenticate the public API.
+- Rate/concurrency controls assume one Railway replica. Same-trip concurrent updates lack a per-trip lock; this demo is not a distributed or multi-user collaboration system. `/health` checks the process, not downstream provider readiness.
+- Evals use synthetic replay and a small fixed sample. One successful live route is a smoke check; neither establishes general travel accuracy or provider availability.
+
+Voice, a live timeline, MCP, bookings and expanded multilingual features are deferred. The portfolio scope is the shipped planning flow plus verifiable engineering evidence. [Case study and tradeoffs](docs/portfolio-story.md).
+
 ## Current release status
 
 M18.3 Final Production QA identified and fixed one selective-replanning regression: an AI-produced empty `interests_replace: []` can no longer erase unrelated existing interests during a budget-only correction.
 
-M18.4 packages the shipped product for portfolio review with architecture, engineering evidence, demo guidance, metadata, and production screenshots. The remaining milestone is the final production release lock.
+v1.0.0 is released and live. P1 recorded a repeated evaluation baseline; P2 verified the shipped demo; P3 packages the portfolio story and evidence. Remaining portfolio milestones: P4, a 60–90-second demonstration, then P5, the accepted release and resume/interview package. No v1.1 feature expansion is required for this portfolio finish.
