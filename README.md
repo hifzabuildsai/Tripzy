@@ -6,7 +6,7 @@
 
 Tripzy is a shipped portfolio project by Hifza: a full-stack agentic travel planner that turns a natural-language mission into a durable trip workspace, researched candidates, and a structured day-by-day itinerary.
 
-**[Try the demo](https://tripzy-liard.vercel.app)** · [Engineering case study](docs/portfolio-story.md) · [Verified demo acceptance](docs/p2-demo-acceptance.md) · [Model evaluation evidence](docs/evals.md)
+**[Try the demo](https://tripzy-liard.vercel.app)** · [Watch the 89-second demo](https://github.com/user-attachments/assets/badc1551-7f3c-4a09-825c-d4b3ef807f50) · [Engineering case study](docs/portfolio-story.md) · [Verified demo acceptance](docs/p2-demo-acceptance.md) · [Model evaluation evidence](docs/evals.md)
 
 > **Engineering thesis:** LLMs interpret intent and perform bounded reasoning. Deterministic Python owns application truth: state, workflow, validation, selective invalidation, persistence, and retry semantics.
 
