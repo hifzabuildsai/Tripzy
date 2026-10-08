@@ -275,4 +275,4 @@ Voice, a live timeline, MCP, bookings and expanded multilingual features are def
 
 M18.3 Final Production QA identified and fixed one selective-replanning regression: an AI-produced empty `interests_replace: []` can no longer erase unrelated existing interests during a budget-only correction.
 
-v1.0.0 is released and live. P1 recorded a repeated evaluation baseline; P2 verified the shipped demo; P3 packages the portfolio story and evidence. Remaining portfolio milestones: P4, a 60–90-second demonstration, then P5, the accepted release and resume/interview package. No v1.1 feature expansion is required for this portfolio finish.
+The accepted portfolio checkpoint is [v1.0.1](https://github.com/hifzabuildsai/Tripzy/releases/tag/v1.0.1), preserving the original v1.0.0 tag. P1–P4 provide the repeated baseline, live acceptance, case study/screenshots and recorded demo. P5 packages the [release evidence](docs/portfolio-release.md), [resume bullets](docs/resume.md) and [interview walkthrough](docs/interview.md). The tag identifies an accepted repository commit; deployment parity is not asserted. No v1.1 feature expansion is required for this portfolio finish.
