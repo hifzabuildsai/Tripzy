@@ -1,5 +1,7 @@
 # Tripzy portfolio demo
 
+[Watch the 89-second portfolio demo](https://github.com/user-attachments/assets/badc1551-7f3c-4a09-825c-d4b3ef807f50) · [Recording and verification notes](p4-demo.md).
+
 Use this as a short, repeatable walkthrough for a portfolio review or interview.
 
 ## 1. Frame the system

@@ -1,5 +1,7 @@
 # P4: recorded portfolio demonstration
 
+[Watch the 89-second demo](https://github.com/user-attachments/assets/badc1551-7f3c-4a09-825c-d4b3ef807f50) · [Published player and limitations](https://github.com/hifzabuildsai/Tripzy/pull/15#issuecomment-6052825716).
+
 Recorded against the public Tripzy frontend and API on October 8, 2026, using synthetic travel details. Source checkout: `8218554a0c89d4cceda97b580fa7237ead3b0863` (P3 merged). This milestone changes documentation only.
 
 ## What the demonstration shows
@@ -14,9 +16,9 @@ Before/after canonical API state was inspected for the same synthetic trip. Only
 
 ## Editing and privacy
 
-The silent, captioned edit targets 89 seconds. It preserves one continuous source sequence, trims setup/closing idle time and speeds up the two provider waits with explicit captions. It does not represent those waits as real-time latency. Browser chrome and the trip access URL are masked throughout, including the cover. No synthetic pointer events were added. Raw footage, full trip snapshots and the controller journal remain outside Git.
+The silent, captioned edit is 89 seconds (89.017 seconds including its cover frame), 1360 × 930 at 60 fps, VP9 WebM. It preserves one continuous source sequence, trims setup/closing idle time and speeds up the two provider waits with explicit captions. It does not represent those waits as real-time latency. Browser chrome and the trip access URL are masked throughout, including the cover. No synthetic pointer events were added. Raw footage, full trip snapshots and the controller journal remain outside Git.
 
-Research outputs remain candidates: the demonstration does not establish bookable availability or complete travel-budget feasibility. Failure-safe persistence is covered by regression tests; this recording does not intentionally cause a production failure.
+This observed run returned no supported flight options; the empty state remains visible in the recording. Preserving flight research in the state comparison therefore includes that empty artifact. Research outputs remain candidates: the demonstration does not establish bookable availability or complete travel-budget feasibility. Failure-safe persistence is covered by regression tests; this recording does not intentionally cause a production failure.
 
 ## Validation
 
@@ -27,4 +29,6 @@ Research outputs remain candidates: the demonstration does not establish bookabl
 - Docker release image built successfully after starting the local Docker daemon.
 - No prompts or extraction tools changed, so no new paid model evaluation was run.
 
-Final media playback, attachment and CI verification are recorded in the milestone PR.
+The screenplay validated; rendering produced 5,341 frames (including the cover). Full isolated Chrome playback reached 89.017 seconds with no media error. Captions and all principal screens were reviewed. The video is attached to the milestone PR; raw footage and state snapshots remain private.
+
+The public GitHub player was checked unsigned-in: its cover displayed correctly and VP9 playback advanced past ten seconds without a media error.
