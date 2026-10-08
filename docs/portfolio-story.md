@@ -135,6 +135,5 @@ Use the regression tests to discuss failure safety; never deliberately break the
 public service. Finish with the measured extraction weaknesses and the distinction
 between a researched candidate and a feasible, bookable trip.
 
-[Demo walkthrough](demo.md) is the basis for P4's short recording. P5 will package
-the accepted release and resume/interview wording. Avoid unsupported claims about
+[Demo walkthrough](demo.md) and [the recording](p4-demo.md) support the presentation. P5 packages [the accepted checkpoint](portfolio-release.md), [resume wording](resume.md) and [interview answers](interview.md). Avoid unsupported claims about
 users, conversion, speedups, cost savings, bookings or general planning accuracy.
