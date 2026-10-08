@@ -15,7 +15,7 @@ from app.services.conversation import ConversationService
 from app.services.itinerary_planning import ItineraryPlannerService
 from app.tools.search_client import search
 from evals.graders import grade_fields, grade_itinerary
-from evals.execution import daily_quota_exhausted, with_retry, select_portfolio_cases
+from evals.execution import daily_quota_exhausted, with_retry, select_portfolio_cases, runtime_environment
 
 
 ROOT = Path(__file__).resolve().parent
@@ -441,6 +441,8 @@ def markdown_report(report: dict[str, Any]) -> str:
 
     lines.extend([
         "",
+        f"Terminal trial execution failures recorded across invocations: {len(report.get('evaluation', {}).get('execution_history', []))}",
+        "",
         "## Per-case failures",
         "",
     ])
@@ -483,13 +485,15 @@ async def async_main(args) -> dict[str, Any]:
                 digest.update(path.read_bytes())
     identity = {"model": model, "search_mode": args.search_mode,
                 "repeat": args.repeat, "profile": args.profile,
-                "fingerprint": digest.hexdigest()}
+                "fingerprint": digest.hexdigest(), "runtime": runtime_environment()}
     completed = {}
+    execution_history = []
     if args.checkpoint and args.checkpoint.exists():
         checkpoint = json.loads(args.checkpoint.read_text(encoding="utf-8"))
         if checkpoint["identity"] != identity:
             raise ValueError("Checkpoint does not match this model, dataset or application version.")
         completed = checkpoint["completed"]
+        execution_history = checkpoint.get("execution_history", [])
     semaphore = asyncio.Semaphore(args.concurrency)
     rate_lock = asyncio.Lock()
     rate_gate = {"next_at": 0.0}
@@ -503,12 +507,16 @@ async def async_main(args) -> dict[str, Any]:
                                 rate_gate, rate_lock, quota_exhausted)
         if not result["error"]:
             completed[key] = result
-            if args.checkpoint:
-                args.checkpoint.parent.mkdir(parents=True, exist_ok=True)
-                temporary = args.checkpoint.with_suffix(".tmp")
-                temporary.write_text(json.dumps({"identity": identity, "completed": completed},
-                                                ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-                temporary.replace(args.checkpoint)
+        else:
+            execution_history.append({"case_id": case["id"], "repeat": repeat_index + 1,
+                                      "error": result["error"]})
+        if args.checkpoint:
+            args.checkpoint.parent.mkdir(parents=True, exist_ok=True)
+            temporary = args.checkpoint.with_suffix(".tmp")
+            temporary.write_text(json.dumps({"identity": identity, "completed": completed,
+                                             "execution_history": execution_history},
+                                            ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            temporary.replace(args.checkpoint)
         if not quota_exhausted.is_set():
             print(f"{case['id']} repeat {repeat_index + 1}: "
                   + ("execution error" if result["error"] else "pass" if result["passed"] else "quality failure"),
@@ -528,6 +536,8 @@ async def async_main(args) -> dict[str, Any]:
             for suite in suites
         },
         "valid_baseline": all(not item["error"] for item in results),
+        "duration_includes_queue_wait": True,
+        "execution_history": execution_history,
         "scope": "Extraction boundaries and itinerary planner with synthetic research; not live research quality or total-trip feasibility.",
     }
     return report

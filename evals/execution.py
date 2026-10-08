@@ -1,6 +1,8 @@
 """Quota-aware evaluation execution; production agent behavior is unchanged."""
 import asyncio
 import re
+import sys
+from importlib.metadata import version
 from collections import defaultdict
 
 
@@ -30,9 +32,11 @@ async def with_retry(factory, attempts=4):
         try:
             return await factory()
         except Exception as error:
-            if daily_quota_exhausted(error) or not is_rate_limit(error) or attempt == attempts - 1:
+            rate_limited = is_rate_limit(error)
+            server_error = 500 <= getattr(error, "status_code", 0) < 600
+            if daily_quota_exhausted(error) or not (rate_limited or server_error) or attempt == attempts - 1:
                 raise
-            await asyncio.sleep(retry_delay(error))
+            await asyncio.sleep(retry_delay(error) if rate_limited else 2 ** attempt)
     raise RuntimeError("unreachable")
 
 
@@ -54,3 +58,12 @@ def select_portfolio_cases(cases):
                 selected.append(groups[language].pop(0))
     ids = {case["id"] for case in selected}
     return [case for case in cases if case["id"] in ids]
+
+
+def runtime_environment():
+    return {
+        "python": sys.version.split()[0],
+        "packages": {name: version(name) for name in (
+            "openai", "openai-agents", "pydantic", "tavily-python",
+        )},
+    }

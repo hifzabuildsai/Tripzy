@@ -104,7 +104,64 @@ def test_checkpoint_resumes_completed_quality_failures_and_retries_outages(monke
     second = asyncio.run(run.async_main(args))
     assert calls == [cases[1]["id"]]
     assert second["evaluation"]["valid_baseline"] is True
+    assert len(second["evaluation"]["execution_history"]) == 1
     assert second["suites"]["intake_extraction"]["mean"]["pass_rate"] == 0
     args.repeat = 2
     with pytest.raises(ValueError, match="Checkpoint does not match"):
         asyncio.run(run.async_main(args))
+    args.repeat = 1
+    monkeypatch.setattr(run, "runtime_environment", lambda: {"python": "different-runtime"})
+    with pytest.raises(ValueError, match="Checkpoint does not match"):
+        asyncio.run(run.async_main(args))
+
+
+def test_itinerary_quality_rejection_is_measured_without_weakening_production(monkeypatch):
+    from app.models.itinerary import Itinerary
+    from app.services.itinerary_planning import ItineraryPlannerService
+
+    case = run.load_cases("itinerary_invariants")[0]
+    request = case["input"]["trip_request"]
+    invalid = Itinerary(destination=request["destination"], start_date=request["start_date"],
+                        end_date="2027-09-14", travelers=request["travelers"], days=[])
+
+    async def fake_model(*args, **kwargs):
+        return SimpleNamespace(final_output=invalid)
+
+    monkeypatch.setenv("TRIPZY_SEARCH_MODE", "replay")
+    monkeypatch.setattr("app.services.itinerary_planning.Runner.run", fake_model)
+    result = asyncio.run(run.run_itinerary(case))
+    assert result["passed"] is False
+    assert result["metrics"]["day_count_equals_duration"] == 0
+    with pytest.raises(ValueError, match="number"):
+        ItineraryPlannerService._validate_itinerary(
+            itinerary=invalid, destination=request["destination"],
+            start_date=request["start_date"], travelers=request["travelers"],
+            expected_dates=["2027-09-10", "2027-09-11", "2027-09-12", "2027-09-13", "2027-09-14"],
+            eligible_activity_names=[],
+        )
+
+
+def test_transient_server_error_retries_without_retrying_bad_model_output(monkeypatch):
+    calls, sleeps = [], []
+
+    class ServerError(RuntimeError):
+        status_code = 500
+
+    async def model():
+        calls.append(1)
+        if len(calls) == 1:
+            raise ServerError("upstream unavailable")
+        return "ok"
+
+    async def sleep(delay):
+        sleeps.append(delay)
+
+    monkeypatch.setattr(execution.asyncio, "sleep", sleep)
+    assert asyncio.run(execution.with_retry(model)) == "ok"
+    assert sleeps == [1]
+
+    async def malformed():
+        raise ValueError("invalid output")
+
+    with pytest.raises(ValueError):
+        asyncio.run(execution.with_retry(malformed))

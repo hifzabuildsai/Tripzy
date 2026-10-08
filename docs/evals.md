@@ -51,7 +51,7 @@ Repeat the identical command to resume completed trials after an interruption
 or quota reset. Completed quality failures are retained too; resume does not
 cherry-pick successful outputs. Provider/execution failures are retried.
 A checkpoint from a different model, dataset, repeat count, application,
-grader or fixture version is rejected. Checkpoints are local run artifacts,
+grader, fixture or Python/provider-library version is rejected. Checkpoints are local run artifacts,
 not committed baselines.
 
 Transient rate limits respect the provider retry delay (bounded to 60 seconds).
@@ -103,3 +103,48 @@ cover those conditions. Raw `npm audit` still reports the acknowledged issue;
 this project does not claim zero advisories.
 
 Use `npm run audit:test && npm run audit` for the reviewed project audit.
+
+Evaluation reports record the actual Python and provider-library versions.
+Local measurements may differ from the locked Linux production runtime; the
+baseline documents that environment rather than claiming production parity.
+Per-trial duration currently includes queue wait and is not a standalone
+inference-latency benchmark.
+
+Completed trial execution rates describe the final retained measurements.
+`execution_history` separately retains terminal failures from earlier run
+invocations, including trials recovered on resume. It is not a count of every
+HTTP retry inside the SDK. A resumed baseline must not be described as perfect
+provider availability.
+
+## Recorded v1.0.0 portfolio baseline
+
+[JSON evidence](../evals/baselines/v1.0.0.json) ·
+[Markdown report](../evals/baselines/v1.0.0.md)
+
+60 cases × 3 repeats = 180 completed trials against Gemini, with synthetic
+research replay. One provider `InternalServerError` caused an invalid first
+report; only that trial was resumed. All measured quality failures were
+retained. The final baseline has no unresolved execution failures and retains
+that earlier failure in `execution_history`.
+
+| Suite | Cases | Mean exact trial pass | Worst repeat |
+|---|---:|---:|---:|
+| Intake extraction | 20 | 63.3% | 60.0% |
+| Correction extraction | 30 | 90.0% | 90.0% |
+| Itinerary invariants | 10 | 100.0% | 100.0% |
+
+Intake mean field precision: 85.8%; recall: 78.5%. Correction interest-operation
+correctness: 100%; mean unrequested-field fraction: 3.89%, above the old v1.1
+plan's 2% target. The portfolio baseline documents this remaining limitation;
+it does not claim that target was met. Budget adherence is unmeasured in all
+30 itinerary trials because comparable item costs were absent.
+
+Every budget-only regression repeat passed. Common measured failures include
+local-script place names instead of canonical English names, partial dates
+being made too specific, and missing serialized default-USD evidence. The
+JSON includes per-language results and expected/actual failure examples.
+
+Measured environment: Python 3.14.6, openai 3.3.1, openai-agents 0.22.0,
+pydantic 2.13.4 and tavily-python 0.7.27. Production/CI use Python 3.12 and the
+locked dependencies. These are local boundary measurements, not an assertion
+of an identical deployed runtime or verified real-world travel quality.

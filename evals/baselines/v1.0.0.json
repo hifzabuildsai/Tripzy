@@ -1,0 +1,1126 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-08T01:50:43.362446+00:00",
+  "model": "gemini-3.5-flash-lite",
+  "search_mode": "replay",
+  "repeat": 3,
+  "suites": {
+    "intake_extraction": {
+      "case_count": 20,
+      "repeat_count": 3,
+      "metrics": {
+        "field_precision": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 60
+        },
+        "field_recall": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 60
+        },
+        "unrequested_field_rate": {
+          "target": 0.0,
+          "direction": "lower",
+          "measured_trials": 60
+        },
+        "pass_rate": {
+          "target": 1.0,
+          "direction": "higher"
+        },
+        "execution_success_rate": {
+          "target": 1.0,
+          "direction": "higher"
+        }
+      },
+      "mean": {
+        "field_precision": 0.8583333333333333,
+        "field_recall": 0.7845238095238095,
+        "unrequested_field_rate": 0.0,
+        "pass_rate": 0.6333333333333333,
+        "execution_success_rate": 1.0
+      },
+      "min": {
+        "field_precision": 0.825,
+        "field_recall": 0.7511904761904762,
+        "unrequested_field_rate": 0.0,
+        "pass_rate": 0.6,
+        "execution_success_rate": 1.0
+      },
+      "failures": [
+        {
+          "case_id": "intake-007",
+          "repeat": 1,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-010",
+          "repeat": 1,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.8571428571428571
+        },
+        {
+          "case_id": "intake-035",
+          "repeat": 1,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-035",
+          "repeat": 1,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-036",
+          "repeat": 1,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-037",
+          "repeat": 1,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-037",
+          "repeat": 1,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-039",
+          "repeat": 1,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-039",
+          "repeat": 1,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-040",
+          "repeat": 1,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.6666666666666666
+        },
+        {
+          "case_id": "intake-007",
+          "repeat": 2,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-010",
+          "repeat": 2,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.8571428571428571
+        },
+        {
+          "case_id": "intake-035",
+          "repeat": 2,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-035",
+          "repeat": 2,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-036",
+          "repeat": 2,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-037",
+          "repeat": 2,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-037",
+          "repeat": 2,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-039",
+          "repeat": 2,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-039",
+          "repeat": 2,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-040",
+          "repeat": 2,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.6666666666666666
+        },
+        {
+          "case_id": "intake-007",
+          "repeat": 3,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-010",
+          "repeat": 3,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.8571428571428571
+        },
+        {
+          "case_id": "intake-025",
+          "repeat": 3,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-025",
+          "repeat": 3,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-035",
+          "repeat": 3,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-035",
+          "repeat": 3,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-036",
+          "repeat": 3,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-037",
+          "repeat": 3,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-037",
+          "repeat": 3,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "intake-039",
+          "repeat": 3,
+          "metric": "field_precision",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-039",
+          "repeat": 3,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "intake-040",
+          "repeat": 3,
+          "metric": "field_recall",
+          "expected": 1.0,
+          "actual": 0.6666666666666666
+        }
+      ]
+    },
+    "correction_extraction": {
+      "case_count": 30,
+      "repeat_count": 3,
+      "metrics": {
+        "exact_match": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 90
+        },
+        "unrequested_field_rate": {
+          "target": 0.0,
+          "direction": "lower",
+          "measured_trials": 90
+        },
+        "interest_operation_correctness": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 90
+        },
+        "pass_rate": {
+          "target": 1.0,
+          "direction": "higher"
+        },
+        "execution_success_rate": {
+          "target": 1.0,
+          "direction": "higher"
+        }
+      },
+      "mean": {
+        "exact_match": 0.9,
+        "unrequested_field_rate": 0.03888888888888889,
+        "interest_operation_correctness": 1.0,
+        "pass_rate": 0.9,
+        "execution_success_rate": 1.0
+      },
+      "min": {
+        "exact_match": 0.9,
+        "unrequested_field_rate": 0.03333333333333333,
+        "interest_operation_correctness": 1.0,
+        "pass_rate": 0.9,
+        "execution_success_rate": 1.0
+      },
+      "failures": [
+        {
+          "case_id": "correction-007",
+          "repeat": 1,
+          "metric": "exact_match",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "correction-007",
+          "repeat": 1,
+          "metric": "unrequested_field_rate",
+          "expected": 0.0,
+          "actual": 1.0
+        },
+        {
+          "case_id": "correction-050",
+          "repeat": 1,
+          "metric": "exact_match",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "correction-057",
+          "repeat": 1,
+          "metric": "exact_match",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "correction-007",
+          "repeat": 2,
+          "metric": "exact_match",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "correction-007",
+          "repeat": 2,
+          "metric": "unrequested_field_rate",
+          "expected": 0.0,
+          "actual": 1.0
+        },
+        {
+          "case_id": "correction-038",
+          "repeat": 2,
+          "metric": "exact_match",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "correction-038",
+          "repeat": 2,
+          "metric": "unrequested_field_rate",
+          "expected": 0.0,
+          "actual": 0.5
+        },
+        {
+          "case_id": "correction-057",
+          "repeat": 2,
+          "metric": "exact_match",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "correction-007",
+          "repeat": 3,
+          "metric": "exact_match",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "correction-007",
+          "repeat": 3,
+          "metric": "unrequested_field_rate",
+          "expected": 0.0,
+          "actual": 1.0
+        },
+        {
+          "case_id": "correction-050",
+          "repeat": 3,
+          "metric": "exact_match",
+          "expected": 1.0,
+          "actual": 0.0
+        },
+        {
+          "case_id": "correction-057",
+          "repeat": 3,
+          "metric": "exact_match",
+          "expected": 1.0,
+          "actual": 0.0
+        }
+      ]
+    },
+    "itinerary_invariants": {
+      "case_count": 10,
+      "repeat_count": 3,
+      "metrics": {
+        "day_count_equals_duration": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 30
+        },
+        "dates_contiguous": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 30
+        },
+        "destination_matches": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 30
+        },
+        "travelers_match": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 30
+        },
+        "named_activities_researched": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 30
+        },
+        "candidates_not_selected": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 30
+        },
+        "budget_adherence_when_exposed": {
+          "target": 1.0,
+          "direction": "higher",
+          "measured_trials": 0
+        },
+        "pass_rate": {
+          "target": 1.0,
+          "direction": "higher"
+        },
+        "execution_success_rate": {
+          "target": 1.0,
+          "direction": "higher"
+        }
+      },
+      "mean": {
+        "day_count_equals_duration": 1.0,
+        "dates_contiguous": 1.0,
+        "destination_matches": 1.0,
+        "travelers_match": 1.0,
+        "named_activities_researched": 1.0,
+        "candidates_not_selected": 1.0,
+        "budget_adherence_when_exposed": null,
+        "pass_rate": 1.0,
+        "execution_success_rate": 1.0
+      },
+      "min": {
+        "day_count_equals_duration": 1.0,
+        "dates_contiguous": 1.0,
+        "destination_matches": 1.0,
+        "travelers_match": 1.0,
+        "named_activities_researched": 1.0,
+        "candidates_not_selected": 1.0,
+        "budget_adherence_when_exposed": null,
+        "pass_rate": 1.0,
+        "execution_success_rate": 1.0
+      },
+      "failures": []
+    }
+  },
+  "overall": {
+    "case_count": 60,
+    "repeat_count": 3,
+    "mean": {
+      "pass_rate": 0.8277777777777778
+    },
+    "min": {
+      "pass_rate": 0.8166666666666667
+    }
+  },
+  "evaluation": {
+    "model": "gemini-3.5-flash-lite",
+    "search_mode": "replay",
+    "repeat": 3,
+    "profile": "portfolio",
+    "fingerprint": "42e0ce49adf11460b0f77260c8df584a7438420a670106b7c392af56546818a4",
+    "runtime": {
+      "python": "3.14.6",
+      "packages": {
+        "openai": "3.3.1",
+        "openai-agents": "0.22.0",
+        "pydantic": "2.13.4",
+        "tavily-python": "0.7.27"
+      }
+    },
+    "case_ids": [
+      "intake-001",
+      "intake-002",
+      "intake-003",
+      "intake-004",
+      "intake-005",
+      "intake-006",
+      "intake-007",
+      "intake-008",
+      "intake-009",
+      "intake-010",
+      "intake-011",
+      "intake-012",
+      "intake-025",
+      "intake-030",
+      "intake-035",
+      "intake-036",
+      "intake-037",
+      "intake-038",
+      "intake-039",
+      "intake-040",
+      "correction-001",
+      "correction-002",
+      "correction-003",
+      "correction-004",
+      "correction-005",
+      "correction-006",
+      "correction-007",
+      "correction-008",
+      "correction-009",
+      "correction-010",
+      "correction-011",
+      "correction-012",
+      "correction-013",
+      "correction-014",
+      "correction-015",
+      "correction-016",
+      "correction-017",
+      "correction-018",
+      "correction-037",
+      "correction-038",
+      "correction-043",
+      "correction-044",
+      "correction-050",
+      "correction-051",
+      "correction-053",
+      "correction-054",
+      "correction-055",
+      "correction-056",
+      "correction-057",
+      "correction-058",
+      "itinerary-001",
+      "itinerary-002",
+      "itinerary-003",
+      "itinerary-004",
+      "itinerary-005",
+      "itinerary-006",
+      "itinerary-007",
+      "itinerary-008",
+      "itinerary-009",
+      "itinerary-010"
+    ],
+    "language_counts": {
+      "intake_extraction": {
+        "ar": 2,
+        "en": 12,
+        "es": 2,
+        "hi": 1,
+        "tr": 1,
+        "ur": 1,
+        "ur-Latn": 1
+      },
+      "correction_extraction": {
+        "ar": 2,
+        "en": 18,
+        "es": 2,
+        "hi": 2,
+        "tr": 2,
+        "ur": 2,
+        "ur-Latn": 2
+      },
+      "itinerary_invariants": {
+        "en": 10
+      }
+    },
+    "valid_baseline": true,
+    "duration_includes_queue_wait": true,
+    "execution_history": [
+      {
+        "case_id": "correction-016",
+        "repeat": 3,
+        "metric": "execution",
+        "expected": "success",
+        "actual": "InternalServerError: execution failed"
+      }
+    ],
+    "scope": "Extraction boundaries and itinerary planner with synthetic research; not live research quality or total-trip feasibility.",
+    "failure_examples": [
+      {
+        "id": "intake-007",
+        "suite": "intake_extraction",
+        "language": "en",
+        "repeat": 1,
+        "expected": {
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "intake-010",
+        "suite": "intake_extraction",
+        "language": "en",
+        "repeat": 1,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul",
+          "start_date": "2027-09-10",
+          "duration_days": 5,
+          "travelers": 2,
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "origin": "Karachi",
+          "destination": "Istanbul",
+          "start_date": "2027-09-10",
+          "duration_days": 5,
+          "travelers": 2,
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "intake-035",
+        "suite": "intake_extraction",
+        "language": "ar",
+        "repeat": 1,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "كراتشي",
+          "destination": "إسطنبول"
+        }
+      },
+      {
+        "id": "intake-036",
+        "suite": "intake_extraction",
+        "language": "ar",
+        "repeat": 1,
+        "expected": {
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "intake-037",
+        "suite": "intake_extraction",
+        "language": "hi",
+        "repeat": 1,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "कराची",
+          "destination": "इस्तांबुल"
+        }
+      },
+      {
+        "id": "intake-039",
+        "suite": "intake_extraction",
+        "language": "es",
+        "repeat": 1,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "Karachi",
+          "destination": "Estambul"
+        }
+      },
+      {
+        "id": "intake-040",
+        "suite": "intake_extraction",
+        "language": "es",
+        "repeat": 1,
+        "expected": {
+          "travelers": 2,
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "travelers": 2,
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "correction-007",
+        "suite": "correction_extraction",
+        "language": "en",
+        "repeat": 1,
+        "expected": {
+          "start_date_text": "October 15"
+        },
+        "actual": {
+          "start_date": "2027-10-15"
+        }
+      },
+      {
+        "id": "correction-050",
+        "suite": "correction_extraction",
+        "language": "ar",
+        "repeat": 1,
+        "expected": {
+          "destination": "Tokyo"
+        },
+        "actual": {
+          "destination": "طوكيو"
+        }
+      },
+      {
+        "id": "correction-057",
+        "suite": "correction_extraction",
+        "language": "es",
+        "repeat": 1,
+        "expected": {
+          "destination": "Tokyo"
+        },
+        "actual": {
+          "destination": "Tokio",
+          "interests_replace": []
+        }
+      },
+      {
+        "id": "intake-007",
+        "suite": "intake_extraction",
+        "language": "en",
+        "repeat": 2,
+        "expected": {
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "intake-010",
+        "suite": "intake_extraction",
+        "language": "en",
+        "repeat": 2,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul",
+          "start_date": "2027-09-10",
+          "duration_days": 5,
+          "travelers": 2,
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "origin": "Karachi",
+          "destination": "Istanbul",
+          "start_date": "2027-09-10",
+          "duration_days": 5,
+          "travelers": 2,
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "intake-035",
+        "suite": "intake_extraction",
+        "language": "ar",
+        "repeat": 2,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "كراتشي",
+          "destination": "إسطنبول"
+        }
+      },
+      {
+        "id": "intake-036",
+        "suite": "intake_extraction",
+        "language": "ar",
+        "repeat": 2,
+        "expected": {
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "intake-037",
+        "suite": "intake_extraction",
+        "language": "hi",
+        "repeat": 2,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "कराची",
+          "destination": "इस्तांबुल"
+        }
+      },
+      {
+        "id": "intake-039",
+        "suite": "intake_extraction",
+        "language": "es",
+        "repeat": 2,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "Karachi",
+          "destination": "Estambul"
+        }
+      },
+      {
+        "id": "intake-040",
+        "suite": "intake_extraction",
+        "language": "es",
+        "repeat": 2,
+        "expected": {
+          "travelers": 2,
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "travelers": 2,
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "correction-007",
+        "suite": "correction_extraction",
+        "language": "en",
+        "repeat": 2,
+        "expected": {
+          "start_date_text": "October 15"
+        },
+        "actual": {
+          "start_date": "2027-10-15",
+          "interests_replace": []
+        }
+      },
+      {
+        "id": "correction-038",
+        "suite": "correction_extraction",
+        "language": "ur",
+        "repeat": 2,
+        "expected": {
+          "destination": "Tokyo"
+        },
+        "actual": {
+          "destination": "Tokyo",
+          "travel_style": "relaxed",
+          "interests_replace": []
+        }
+      },
+      {
+        "id": "correction-057",
+        "suite": "correction_extraction",
+        "language": "es",
+        "repeat": 2,
+        "expected": {
+          "destination": "Tokyo"
+        },
+        "actual": {
+          "destination": "Tokio",
+          "interests_replace": []
+        }
+      },
+      {
+        "id": "intake-007",
+        "suite": "intake_extraction",
+        "language": "en",
+        "repeat": 3,
+        "expected": {
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "intake-010",
+        "suite": "intake_extraction",
+        "language": "en",
+        "repeat": 3,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul",
+          "start_date": "2027-09-10",
+          "duration_days": 5,
+          "travelers": 2,
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "origin": "Karachi",
+          "destination": "Istanbul",
+          "start_date": "2027-09-10",
+          "duration_days": 5,
+          "travelers": 2,
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "intake-025",
+        "suite": "intake_extraction",
+        "language": "ur",
+        "repeat": 3,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "کراچی",
+          "destination": "استنبول"
+        }
+      },
+      {
+        "id": "intake-035",
+        "suite": "intake_extraction",
+        "language": "ar",
+        "repeat": 3,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "كراتشي",
+          "destination": "إسطنبول"
+        }
+      },
+      {
+        "id": "intake-036",
+        "suite": "intake_extraction",
+        "language": "ar",
+        "repeat": 3,
+        "expected": {
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "intake-037",
+        "suite": "intake_extraction",
+        "language": "hi",
+        "repeat": 3,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "कराची",
+          "destination": "इस्तांबुल"
+        }
+      },
+      {
+        "id": "intake-039",
+        "suite": "intake_extraction",
+        "language": "es",
+        "repeat": 3,
+        "expected": {
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        },
+        "actual": {
+          "origin": "Karachi",
+          "destination": "Estambul"
+        }
+      },
+      {
+        "id": "intake-040",
+        "suite": "intake_extraction",
+        "language": "es",
+        "repeat": 3,
+        "expected": {
+          "travelers": 2,
+          "budget": 2000,
+          "currency": "USD"
+        },
+        "actual": {
+          "travelers": 2,
+          "budget": 2000.0
+        }
+      },
+      {
+        "id": "correction-007",
+        "suite": "correction_extraction",
+        "language": "en",
+        "repeat": 3,
+        "expected": {
+          "start_date_text": "October 15"
+        },
+        "actual": {
+          "start_date": "2027-10-15",
+          "interests_replace": []
+        }
+      },
+      {
+        "id": "correction-050",
+        "suite": "correction_extraction",
+        "language": "ar",
+        "repeat": 3,
+        "expected": {
+          "destination": "Tokyo"
+        },
+        "actual": {
+          "destination": "طوكيو"
+        }
+      },
+      {
+        "id": "correction-057",
+        "suite": "correction_extraction",
+        "language": "es",
+        "repeat": 3,
+        "expected": {
+          "destination": "Tokyo"
+        },
+        "actual": {
+          "destination": "Tokio",
+          "interests_replace": []
+        }
+      }
+    ],
+    "language_results": {
+      "intake_extraction": {
+        "ar": {
+          "trials": 6,
+          "exact_trial_pass_rate": 0.0
+        },
+        "en": {
+          "trials": 36,
+          "exact_trial_pass_rate": 0.8333333333333334
+        },
+        "es": {
+          "trials": 6,
+          "exact_trial_pass_rate": 0.0
+        },
+        "hi": {
+          "trials": 3,
+          "exact_trial_pass_rate": 0.0
+        },
+        "tr": {
+          "trials": 3,
+          "exact_trial_pass_rate": 1.0
+        },
+        "ur": {
+          "trials": 3,
+          "exact_trial_pass_rate": 0.6666666666666666
+        },
+        "ur-Latn": {
+          "trials": 3,
+          "exact_trial_pass_rate": 1.0
+        }
+      },
+      "correction_extraction": {
+        "ar": {
+          "trials": 6,
+          "exact_trial_pass_rate": 0.6666666666666666
+        },
+        "en": {
+          "trials": 54,
+          "exact_trial_pass_rate": 0.9444444444444444
+        },
+        "es": {
+          "trials": 6,
+          "exact_trial_pass_rate": 0.5
+        },
+        "hi": {
+          "trials": 6,
+          "exact_trial_pass_rate": 1.0
+        },
+        "tr": {
+          "trials": 6,
+          "exact_trial_pass_rate": 1.0
+        },
+        "ur": {
+          "trials": 6,
+          "exact_trial_pass_rate": 0.8333333333333334
+        },
+        "ur-Latn": {
+          "trials": 6,
+          "exact_trial_pass_rate": 1.0
+        }
+      },
+      "itinerary_invariants": {
+        "en": {
+          "trials": 30,
+          "exact_trial_pass_rate": 1.0
+        }
+      }
+    }
+  }
+}
