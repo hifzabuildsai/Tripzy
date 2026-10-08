@@ -148,3 +148,5 @@ Measured environment: Python 3.14.6, openai 3.3.1, openai-agents 0.22.0,
 pydantic 2.13.4 and tavily-python 0.7.27. Production/CI use Python 3.12 and the
 locked dependencies. These are local boundary measurements, not an assertion
 of an identical deployed runtime or verified real-world travel quality.
+
+P2 production acceptance: [verification record](p2-demo-acceptance.md).
