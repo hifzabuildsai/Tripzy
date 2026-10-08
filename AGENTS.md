@@ -3,8 +3,10 @@
 These rules apply to any coding agent working on this repo (ChatGPT Work, Codex, Claude Code).
 
 Tripzy is a production agentic AI travel planner. v1.0.0 is released and live.
-Current scope: **v1.1 (milestones M19.0–M19.5)**, defined in `docs/v1.1/PLAN.md`.
-Read that file before doing anything. Do only the milestone you were asked to do.
+Current approved scope: **portfolio finish (P1–P5)**, defined in `docs/evals.md`.
+The broader v1.1 feature roadmap in `docs/v1.1/PLAN.md` is deferred.
+Do only the milestone you were asked to do; do not start multilingual, voice,
+timeline, MCP or booking work automatically.
 
 ## History (you have no memory of it; the repo is the source of truth)
 
@@ -84,7 +86,7 @@ code you weren't asked to touch.
 pytest -q
 python -m pip_audit --requirement requirements.lock
 # frontend
-cd frontend && npm ci && npm audit --audit-level=high && npm test && npm run lint && npm run build && cd ..
+cd frontend && npm ci && npm run audit:test && npm run audit && npm test && npm run lint && npm run build && cd ..
 # container
 docker build --tag tripzy-backend:release-gate .
 ```
