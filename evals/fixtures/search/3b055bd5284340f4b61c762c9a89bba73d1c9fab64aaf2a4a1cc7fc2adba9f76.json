@@ -1,0 +1,46 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-001",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Istanbul",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "Karachi",
+          "destination": "Istanbul"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Istanbul Eval Hotel",
+          "destination": "Istanbul"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Basilica Cistern",
+          "destination": "Istanbul",
+          "category": "attraction"
+        },
+        {
+          "name": "Spice Bazaar",
+          "destination": "Istanbul",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}

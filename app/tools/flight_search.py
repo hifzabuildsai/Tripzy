@@ -1,8 +1,7 @@
 from agents import function_tool
-from tavily import TavilyClient
 
-from app.config import TAVILY_API_KEY
 from app.logging_config import logger
+from app.tools.search_client import search
 
 
 @function_tool
@@ -22,16 +21,12 @@ def search_flight_information(
     them as confirmed live availability.
     """
 
-    client = TavilyClient(
-        api_key=TAVILY_API_KEY
-    )
-
     query = (
         f"flights from {origin} to {destination} "
         f"on {departure_date} airlines fares schedules"
     )
 
-    response = client.search(
+    response = search(
         query=query,
         search_depth="advanced",
         max_results=5,

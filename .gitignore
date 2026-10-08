@@ -87,3 +87,6 @@ node_modules/
 .next/
 out/
 frontend-tripzy/
+
+# Eval run outputs (baselines remain tracked)
+evals/reports/

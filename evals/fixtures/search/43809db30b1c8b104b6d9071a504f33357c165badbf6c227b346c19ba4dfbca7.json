@@ -1,0 +1,46 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-006",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Seoul",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "Islamabad",
+          "destination": "Seoul"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Seoul Eval Hotel",
+          "destination": "Seoul"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Gyeongbokgung Palace",
+          "destination": "Seoul",
+          "category": "attraction"
+        },
+        {
+          "name": "Bukchon Hanok Village",
+          "destination": "Seoul",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "request": {
+    "query": "eval itinerary research itinerary-003",
+    "params": {
+      "fixture_type": "itinerary_research"
+    }
+  },
+  "response": {
+    "research": {
+      "destination_research": {
+        "destination": "Barcelona",
+        "attractions": [],
+        "neighborhoods": [],
+        "transportation": [],
+        "practical_tips": [],
+        "local_information": [],
+        "sources": []
+      },
+      "flight_options": [
+        {
+          "airline": "Eval Air",
+          "origin": "London",
+          "destination": "Barcelona"
+        }
+      ],
+      "hotel_options": [
+        {
+          "name": "Barcelona Eval Hotel",
+          "destination": "Barcelona"
+        }
+      ],
+      "activity_options": [
+        {
+          "name": "Sagrada Familia",
+          "destination": "Barcelona",
+          "category": "attraction"
+        },
+        {
+          "name": "Park Güell",
+          "destination": "Barcelona",
+          "category": "attraction"
+        }
+      ]
+    }
+  }
+}
