@@ -13,7 +13,7 @@ Tripzy is a shipped portfolio project by Hifza: a full-stack agentic travel plan
 ## Product preview
 
 <p align="center">
-  <img src="docs/images/tripzy-landing.png" alt="Tripzy landing page" width="100%" />
+  <img src="docs/images/tripzy-p3-landing.jpg" alt="Tripzy landing page" width="100%" />
 </p>
 
 <p align="center"><sub>One natural-language trip mission starts a durable planning workspace.</sub></p>
@@ -21,18 +21,24 @@ Tripzy is a shipped portfolio project by Hifza: a full-stack agentic travel plan
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/images/tripzy-discover.webp" alt="Tripzy destination research view" />
+      <img src="docs/images/tripzy-p3-discover.jpg" alt="Tripzy destination research view" />
       <br />
       <sub><b>Discover:</b> structured destination research organized for the traveler.</sub>
     </td>
     <td width="50%">
-      <img src="docs/images/tripzy-itinerary.webp" alt="Tripzy structured itinerary view" />
+      <img src="docs/images/tripzy-p3-itinerary.jpg" alt="Tripzy structured itinerary view" />
       <br />
       <sub><b>Itinerary:</b> a persisted day-by-day plan built from the researched artifacts.</sub>
     </td>
   </tr>
 </table>
 
+<details>
+  <summary>Mobile itinerary preview</summary>
+  <p><img src="docs/images/tripzy-p3-mobile.jpg" alt="Tripzy itinerary at a 390-pixel mobile viewport" width="390" /></p>
+</details>
+
+Production captures from October 8, 2026, using the synthetic QA trip. These show researched planning output, not confirmed bookings. [Capture notes](docs/images/README.md).
 ## Why this project matters
 
 The engineering challenge is keeping a persistent plan coherent when interpretation, external search, or a revision fails. Tripzy separates model decisions from application state, then validates and saves the result at explicit boundaries.
