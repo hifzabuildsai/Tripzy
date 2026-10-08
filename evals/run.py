@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import asyncio
 import json
 import os
@@ -14,6 +15,7 @@ from app.services.conversation import ConversationService
 from app.services.itinerary_planning import ItineraryPlannerService
 from app.tools.search_client import search
 from evals.graders import grade_fields, grade_itinerary
+from evals.execution import daily_quota_exhausted, with_retry, select_portfolio_cases
 
 
 ROOT = Path(__file__).resolve().parent
@@ -68,32 +70,6 @@ def load_cases(suite: str) -> list[dict[str, Any]]:
         cases.append(case)
 
     return cases
-
-
-def _is_rate_limit(error: Exception) -> bool:
-    message = str(error).casefold()
-    return any(
-        marker in message
-        for marker in (
-            "429",
-            "rate limit",
-            "resource_exhausted",
-            "resource exhausted",
-            "quota",
-        )
-    )
-
-
-async def _with_retry(factory, attempts: int = 4):
-    for attempt in range(attempts):
-        try:
-            return await factory()
-        except Exception as error:
-            if not _is_rate_limit(error) or attempt == attempts - 1:
-                raise
-            # Gemini free-tier RPM errors include retry delays around 30s.\n            # A short exponential retry (1/2/4s) only re-hits the same window.\n            await asyncio.sleep(35)
-
-    raise RuntimeError("unreachable")
 
 
 async def run_intake(case: dict[str, Any]) -> dict[str, Any]:
@@ -187,7 +163,14 @@ async def run_itinerary(case: dict[str, Any]) -> dict[str, Any]:
         "status": "activities_researched",
     })
 
-    itinerary = await ItineraryPlannerService().build_itinerary(state)
+    # Grade raw structured output before production invariant rejection. The
+    # evaluator must count a wrong date/activity as a quality failure, not an outage.
+    class EvalPlanner(ItineraryPlannerService):
+        @classmethod
+        def _validate_itinerary(cls, **kwargs):
+            pass
+
+    itinerary = await EvalPlanner().build_itinerary(state)
     actual = itinerary.model_dump()
     grade = grade_itinerary(
         actual,
@@ -198,7 +181,7 @@ async def run_itinerary(case: dict[str, Any]) -> dict[str, Any]:
     return {
         "passed": grade["passed"],
         "metrics": {
-            key: 1.0 if value else 0.0
+            key: None if value is None else 1.0 if value else 0.0
             for key, value in grade["checks"].items()
         },
         "actual": actual,
@@ -220,33 +203,41 @@ async def run_case(
     request_interval: float,
     rate_gate: dict[str, float],
     rate_lock: asyncio.Lock,
+    quota_exhausted: asyncio.Event,
 ) -> dict[str, Any]:
     started = time.monotonic()
 
     async with semaphore:
-        if request_interval > 0:
-            async with rate_lock:
-                now = time.monotonic()
-                wait_for = max(0.0, rate_gate["next_at"] - now)
-                if wait_for:
-                    await asyncio.sleep(wait_for)
-                rate_gate["next_at"] = time.monotonic() + request_interval
         try:
+            if quota_exhausted.is_set():
+                raise RuntimeError("Skipped: provider daily quota exhausted")
+            if request_interval > 0:
+                async with rate_lock:
+                    now = time.monotonic()
+                    wait_for = max(0.0, rate_gate["next_at"] - now)
+                    if wait_for:
+                        await asyncio.sleep(wait_for)
+                    rate_gate["next_at"] = time.monotonic() + request_interval
+            if quota_exhausted.is_set():
+                raise RuntimeError("Skipped: provider daily quota exhausted")
             outcome = await asyncio.wait_for(
-                _with_retry(
+                with_retry(
                     lambda: RUNNERS[case["suite"]](case)
                 ),
-                timeout=90,
+                timeout=240,
             )
             error = None
         except Exception as exc:
+            if daily_quota_exhausted(exc):
+                quota_exhausted.set()
             outcome = {
                 "passed": False,
                 "metrics": {},
                 "expected": None,
                 "actual": None,
             }
-            error = f"{type(exc).__name__}: {exc}"
+            reason = "provider daily quota exhausted" if quota_exhausted.is_set() else "execution failed"
+            error = f"{type(exc).__name__}: {reason}"
 
     return {
         "id": case["id"],
@@ -299,10 +290,10 @@ def _suite_report(
             values = [
                 float(item["metrics"][metric])
                 for item in items
-                if metric in item["metrics"]
+                if item["metrics"].get(metric) is not None
             ]
             repeat_aggregates[metric].append(
-                statistics.mean(values) if values else 0.0
+                statistics.mean(values) if values else None
             )
 
     failures = []
@@ -318,7 +309,10 @@ def _suite_report(
             continue
 
         for metric in metrics:
-            value = float(item["metrics"][metric])
+            raw_value = item["metrics"].get(metric)
+            if raw_value is None:
+                continue
+            value = float(raw_value)
             if _metric_failed(metric, value):
                 failures.append({
                     "case_id": item["id"],
@@ -343,15 +337,27 @@ def _suite_report(
     }
 
     mean = {
-        metric: statistics.mean(values)
+        metric: statistics.mean(measured) if (measured := [v for v in values if v is not None]) else None
         for metric, values in repeat_aggregates.items()
     }
     minimum = {
-        metric: min(values)
+        metric: min(measured) if (measured := [v for v in values if v is not None]) else None
         for metric, values in repeat_aggregates.items()
     }
     mean["pass_rate"] = statistics.mean(repeat_pass_rates)
     minimum["pass_rate"] = min(repeat_pass_rates)
+
+    for metric in metrics:
+        metric_contract[metric]["measured_trials"] = sum(
+            item["metrics"].get(metric) is not None for item in suite_results
+        )
+    metric_contract["execution_success_rate"] = {"target": 1.0, "direction": "higher"}
+    mean["execution_success_rate"] = sum(not item["error"] for item in suite_results) / len(suite_results)
+    minimum["execution_success_rate"] = min(
+        sum(not item["error"] for item in suite_results if item["repeat"] == repeat)
+        / sum(item["repeat"] == repeat for item in suite_results)
+        for repeat in range(1, repeat_count + 1)
+    )
 
     return {
         "case_count": len(suite_results) // repeat_count,
@@ -413,8 +419,10 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- Search mode: `{report['search_mode']}`",
         f"- Repeats: {report['repeat']}",
         "",
-        "| Suite | Cases | Mean pass | Min pass | Failures |",
-        "|---|---:|---:|---:|---:|",
+        "Pass rates count execution failures as unsuccessful trials. Quality metrics exclude unavailable measurements.",
+        "",
+        "| Suite | Cases | Mean pass | Min pass | Execution success | Failures |",
+        "|---|---:|---:|---:|---:|---:|",
     ]
 
     for suite, data in report["suites"].items():
@@ -425,6 +433,7 @@ def markdown_report(report: dict[str, Any]) -> str:
                 str(data["case_count"]),
                 f"{data['mean']['pass_rate'] * 100:.1f}%",
                 f"{data['min']['pass_rate'] * 100:.1f}%",
+                f"{data['mean']['execution_success_rate'] * 100:.1f}%",
                 str(len(data["failures"])),
             ])
             + " |"
@@ -461,34 +470,67 @@ async def async_main(args) -> dict[str, Any]:
 
     suites = SUITES if args.suite == "all" else (args.suite,)
     cases = [
-        case
-        for suite in suites
-        for case in load_cases(suite)
+        case for suite in suites
+        for case in (select_portfolio_cases(load_cases(suite))
+                     if args.profile == "portfolio" else load_cases(suite))
     ]
-
+    model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    digest = hashlib.sha256(json.dumps(cases, sort_keys=True).encode())
+    for directory in (ROOT.parent / "app", ROOT / "graders", ROOT / "fixtures"):
+        for path in sorted(directory.rglob("*")):
+            if path.is_file() and path.suffix in {".py", ".json"}:
+                digest.update(path.relative_to(ROOT.parent).as_posix().encode())
+                digest.update(path.read_bytes())
+    identity = {"model": model, "search_mode": args.search_mode,
+                "repeat": args.repeat, "profile": args.profile,
+                "fingerprint": digest.hexdigest()}
+    completed = {}
+    if args.checkpoint and args.checkpoint.exists():
+        checkpoint = json.loads(args.checkpoint.read_text(encoding="utf-8"))
+        if checkpoint["identity"] != identity:
+            raise ValueError("Checkpoint does not match this model, dataset or application version.")
+        completed = checkpoint["completed"]
     semaphore = asyncio.Semaphore(args.concurrency)
     rate_lock = asyncio.Lock()
     rate_gate = {"next_at": 0.0}
-    tasks = [
-        run_case(
-            case,
-            repeat_index,
-            semaphore,
-            args.request_interval,
-            rate_gate,
-            rate_lock,
-        )
-        for repeat_index in range(args.repeat)
-        for case in cases
-    ]
-    results = await asyncio.gather(*tasks)
+    quota_exhausted = asyncio.Event()
 
-    return build_report(
-        results=results,
-        suites=suites,
-        repeat_count=args.repeat,
-        search_mode=args.search_mode,
-    )
+    async def execute(case, repeat_index):
+        key = f"{case['id']}:{repeat_index + 1}"
+        if key in completed:
+            return completed[key]
+        result = await run_case(case, repeat_index, semaphore, args.request_interval,
+                                rate_gate, rate_lock, quota_exhausted)
+        if not result["error"]:
+            completed[key] = result
+            if args.checkpoint:
+                args.checkpoint.parent.mkdir(parents=True, exist_ok=True)
+                temporary = args.checkpoint.with_suffix(".tmp")
+                temporary.write_text(json.dumps({"identity": identity, "completed": completed},
+                                                ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                temporary.replace(args.checkpoint)
+        if not quota_exhausted.is_set():
+            print(f"{case['id']} repeat {repeat_index + 1}: "
+                  + ("execution error" if result["error"] else "pass" if result["passed"] else "quality failure"),
+                  flush=True)
+        return result
+
+    results = await asyncio.gather(*(
+        execute(case, repeat_index)
+        for repeat_index in range(args.repeat) for case in cases
+    ))
+    report = build_report(results, suites, args.repeat, args.search_mode)
+    report["evaluation"] = {
+        **identity, "case_ids": [case["id"] for case in cases],
+        "language_counts": {
+            suite: {language: sum(case["language"] == language for case in cases if case["suite"] == suite)
+                    for language in sorted({case["language"] for case in cases if case["suite"] == suite})}
+            for suite in suites
+        },
+        "valid_baseline": all(not item["error"] for item in results),
+        "scope": "Extraction boundaries and itinerary planner with synthetic research; not live research quality or total-trip feasibility.",
+    }
+    return report
 
 
 def parse_args():
@@ -509,6 +551,8 @@ def parse_args():
     parser.add_argument("--concurrency", type=int, default=2)
     parser.add_argument("--request-interval", type=float, default=0.0)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--checkpoint", type=Path, help="Resume completed trials from a matching checkpoint.")
+    parser.add_argument("--profile", choices=("full", "portfolio"), default="full")
     args = parser.parse_args()
 
     if args.repeat < 1:
@@ -547,7 +591,7 @@ def main():
         encoding="utf-8",
     )
 
-    print(json.dumps(report["suites"], indent=2))
+    print(json.dumps({name: data["mean"] for name, data in report["suites"].items()}, indent=2))
     print(f"JSON report: {json_path}")
     print(f"Markdown report: {md_path}")
 

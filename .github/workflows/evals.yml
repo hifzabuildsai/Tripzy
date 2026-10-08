@@ -3,6 +3,14 @@ name: Tripzy evals
 on:
   workflow_dispatch:
     inputs:
+      profile:
+        description: Full dataset or fixed portfolio subset
+        required: true
+        default: portfolio
+        type: choice
+        options:
+          - portfolio
+          - full
       suite:
         description: Eval suite to run
         required: true
@@ -28,7 +36,7 @@ permissions:
 jobs:
   eval:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 120
 
     steps:
       - name: Check out repository
@@ -49,10 +57,12 @@ jobs:
       - name: Run eval suite
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           TRIPZY_SEARCH_MODE: replay
-        run: |
-          python -m evals.run             --suite "${{ inputs.suite }}"             --search-mode replay             --repeat "${{ inputs.repeat }}"             --concurrency 2             --output evals/reports/eval
+        run: >-
+          python -m evals.run --suite "${{ inputs.suite }}"
+          --profile "${{ inputs.profile }}" --search-mode replay
+          --repeat "${{ inputs.repeat }}" --concurrency 1 --request-interval 9
+          --checkpoint evals/reports/eval-checkpoint.json --output evals/reports/eval
 
       - name: Upload eval report
         if: always()
@@ -62,4 +72,5 @@ jobs:
           path: |
             evals/reports/eval.json
             evals/reports/eval.md
+            evals/reports/eval-checkpoint.json
           if-no-files-found: error

@@ -55,7 +55,7 @@ def test_grade_itinerary_checks_research_boundary_and_dates():
             {
                 "date": "2027-09-10",
                 "items": [
-                    {"title": "Basilica Cistern", "estimated_cost": 20},
+                    {"title": "Basilica Cistern", "estimated_cost": 20, "currency": "USD"},
                     {"title": "Lunch"},
                 ],
             },
@@ -71,6 +71,7 @@ def test_grade_itinerary_checks_research_boundary_and_dates():
         "duration_days": 2,
         "travelers": 2,
         "budget": 100,
+        "currency": "USD",
     }
     research = {
         "activity_options": [{"name": "Basilica Cistern"}],

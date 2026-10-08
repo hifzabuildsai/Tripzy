@@ -59,6 +59,7 @@ def grade_itinerary(
     candidate_selection_mentions: list[str] = []
     exposed_cost_total = 0.0
     exposed_costs = False
+    comparable_costs = True
 
     for day in days:
         for item in day.get("items", []):
@@ -82,11 +83,13 @@ def grade_itinerary(
             cost = item.get("estimated_cost")
             if isinstance(cost, (int, float)):
                 exposed_costs = True
+                if item.get("currency") != trip_request.get("currency") or cost < 0:
+                    comparable_costs = False
                 exposed_cost_total += float(cost)
 
     budget = trip_request.get("budget")
-    budget_ok = True
-    if budget is not None and exposed_costs:
+    budget_ok = None
+    if budget is not None and exposed_costs and comparable_costs:
         budget_ok = exposed_cost_total <= float(budget)
 
     checks = {
@@ -104,7 +107,7 @@ def grade_itinerary(
     }
 
     return {
-        "passed": all(checks.values()),
+        "passed": all(value for value in checks.values() if value is not None),
         "checks": checks,
         "unknown_named_activities": unknown_named,
         "candidate_selection_mentions": candidate_selection_mentions,
