@@ -4,9 +4,9 @@
 
 **Give me the trip. I’ll take it from here.**
 
-Tripzy is a shipped portfolio project by Hifza: a full-stack agentic travel planner that turns a natural-language mission into a durable trip workspace, researched candidates, and a structured day-by-day itinerary.
+Tripzy is a completed portfolio project by Hifza, built with AI-assisted development. It turns a natural-language travel mission into a durable trip workspace, research candidates and a structured day-by-day itinerary. The engineering focus is keeping saved state coherent when a traveler revises a plan or a provider fails.
 
-**[Try the demo](https://tripzy-liard.vercel.app)** · [Watch the 89-second demo](https://github.com/user-attachments/assets/badc1551-7f3c-4a09-825c-d4b3ef807f50) · [Engineering case study](docs/portfolio-story.md) · [Verified demo acceptance](docs/p2-demo-acceptance.md) · [Model evaluation evidence](docs/evals.md)
+**[Try the demo](https://tripzy-liard.vercel.app)** · [Watch the 89-second demo](https://github.com/user-attachments/assets/badc1551-7f3c-4a09-825c-d4b3ef807f50) · [Engineering case study](docs/portfolio-story.md) · [Verified demo acceptance](docs/p2-demo-acceptance.md) · [Model evaluation evidence](docs/evals.md) · [Résumé bullets](docs/resume.md) · [Interview walkthrough](docs/interview.md)
 
 > **Engineering thesis:** LLMs interpret intent and perform bounded reasoning. Deterministic Python owns application truth: state, workflow, validation, selective invalidation, persistence, and retry semantics.
 
@@ -39,6 +39,7 @@ Tripzy is a shipped portfolio project by Hifza: a full-stack agentic travel plan
 </details>
 
 Production captures from October 8, 2026, using the synthetic QA trip. These show researched planning output, not confirmed bookings. [Capture notes](docs/images/README.md).
+
 ## Why this project matters
 
 The engineering challenge is keeping a persistent plan coherent when interpretation, external search, or a revision fails. Tripzy separates model decisions from application state, then validates and saves the result at explicit boundaries.
@@ -96,38 +97,35 @@ Destination, flight, hotel, and activity research produce structured candidates.
 
 ## Architecture
 
-![Tripzy System Architecture](docs/images/tripzy-system-architecture.png)
+![Tripzy system architecture: Vercel frontend, Railway FastAPI workflow, Gemini/Tavily research, deterministic state and validation, and save-after-success Supabase persistence](docs/images/tripzy-system-architecture.png)
 
+The diagram shows logical responsibilities, not parallel execution. **ConversationService** coordinates interpretation and specialist workflows. **TripManager** owns canonical request/state and date semantics; Python's dependency graph determines which artifacts to rebuild. Gemini supports interpretation, research and itinerary synthesis through the OpenAI Agents SDK. Tavily supplies search to research specialists; itinerary synthesis consumes structured research and performs no new searches.
 
-```text
-Browser / Next.js
-       |
-       v
-FastAPI  ---- public-demo limits / CORS / security boundary
-       |
-       v
-ConversationService
-       |
-       +--> TripManager ---------------------------+
-       |       deterministic state + invariants   |
-       |                                           |
-       +--> specialist research workflows          |
-       |       Gemini + OpenAI Agents SDK           |
-       |       Tavily search                        |
-       |                                           |
-       +--> Itinerary Planner <--- structured data  |
-       |                                           |
-       v                                           |
-TripRepository abstraction                         |
-       |                                           |
-       +--> InMemoryTripRepository (tests)          |
-       +--> SupabaseTripRepository -----------------+
-                    |
-                    v
-             PostgreSQL / JSONB
+The **API save-after-success boundary** is distinct from state management. A planning request loads a saved baseline, processes changes in isolated working state, and persists the result through `TripRepository` only after successful processing. A failure leaves the previous saved state available. Missing requirements may return a clarification before research or itinerary synthesis; these branches are omitted from the overview image.
+
+Production runs on **Vercel** (Next.js), **Railway** (one Dockerized FastAPI replica) and **Supabase** (PostgreSQL/JSONB). Provider credentials stay backend-only. `InMemoryTripRepository` is used by tests; production uses `SupabaseTripRepository`. The image's budget example assumes the interpreted correction changes only budget; unintended extracted edits remain a measured limitation.
+
+<details>
+<summary>Accessible architecture flow</summary>
+
+```mermaid
+flowchart TD
+    UI[Traveler / Next.js on Vercel] --> API[FastAPI on Railway / request and capacity limits]
+    API --> C[ConversationService]
+    C --> T[TripManager / canonical request and state]
+    C --> R[Research specialists / structured candidates]
+    C -. Intent interpretation .-> G[Gemini via OpenAI Agents SDK]
+    R -. Model reasoning .-> G
+    R <--> S[Tavily search]
+    T --> I[Itinerary synthesis and deterministic validation]
+    R --> I
+    I -. Synthesis .-> G
+    I --> SAVE[API / save only after success]
+    SAVE --> REPO[TripRepository / Supabase PostgreSQL JSONB]
+    REPO -. Load saved trip .-> API
 ```
 
-Production is split across **Vercel** (Next.js), **Railway** (Dockerized FastAPI), and **Supabase** (PostgreSQL). Gemini and Tavily are backend-only.
+</details>
 
 ## Stack
 
@@ -250,9 +248,13 @@ frontend/
 supabase/
   migrations/   production-matching database source of truth
 tests/          backend workflow/API regression coverage
+evals/          fixed datasets, runner and repeated baseline
 docs/
   database.md   bootstrap + RLS verification
   deployment.md production environment + deployment contract
+  portfolio-story.md architecture decisions + evidence + limitations
+  resume.md     copy-ready project wording
+  interview.md  introduction, walkthrough and technical Q&A
 ```
 
 ## Deployment and security
@@ -271,8 +273,18 @@ The browser receives only the public backend URL. Gemini, Tavily, and the privil
 
 Voice, a live timeline, MCP, bookings and expanded multilingual features are deferred. The portfolio scope is the shipped planning flow plus verifiable engineering evidence. [Case study and tradeoffs](docs/portfolio-story.md).
 
-## Current release status
+## Portfolio status
 
-M18.3 Final Production QA identified and fixed one selective-replanning regression: an AI-produced empty `interests_replace: []` can no longer erase unrelated existing interests during a budget-only correction.
+**P1–P5 are complete and merged.** The package includes:
 
-The accepted portfolio checkpoint is [v1.0.1](https://github.com/hifzabuildsai/Tripzy/releases/tag/v1.0.1), preserving the original v1.0.0 tag. P1–P4 provide the repeated baseline, live acceptance, case study/screenshots and recorded demo. P5 packages the [release evidence](docs/portfolio-release.md), [resume bullets](docs/resume.md) and [interview walkthrough](docs/interview.md). The tag identifies an accepted repository commit; deployment parity is not asserted. No v1.1 feature expansion is required for this portfolio finish.
+| Milestone | Shipped evidence |
+| --- | --- |
+| P1 · Evaluations | [60 fixed cases × three repeats](docs/evals.md) |
+| P2 · Live acceptance | [Planning, clarification, persistence and revision checks](docs/p2-demo-acceptance.md) |
+| P3 · Portfolio story | [Architecture, screenshots and honest limitations](docs/portfolio-story.md) |
+| P4 · Recorded demo | [89-second walkthrough and verification](docs/p4-demo.md) |
+| P5 · Presentation package | [Release record](docs/portfolio-release.md), [résumé wording](docs/resume.md), [interview walkthrough](docs/interview.md) |
+
+The accepted repository checkpoint [v1.0.1](https://github.com/hifzabuildsai/Tripzy/releases/tag/v1.0.1) tags the P4 merge and preserves the original v1.0.0 tag. P5's presentation documents were merged afterward in [PR #16](https://github.com/hifzabuildsai/Tripzy/pull/16); they are available on main, not inside that tag. The eval baseline retains its original filename and measurement provenance. Deployment parity with the tag is not asserted.
+
+The earlier empty `interests_replace: []` regression is fixed and covered by tests. The remaining extraction weaknesses and travel-feasibility gaps are documented above. This is the portfolio stopping point; the deferred v1.1 roadmap does not resume automatically.
