@@ -31,3 +31,7 @@ Earlier release captures (`tripzy-landing.png`, `tripzy-landing.webp`,
 longer the root README previews. Their precise capture timestamps were not
 recorded here. `tripzy-system-architecture.png` is a diagram, not a production
 screenshot.
+
+## System architecture diagram
+
+Updated October 9, 2026, against merged main at cece9b10a2db82d471f4c055ddbb883482a44d31. The built-in image generator edited the existing diagram; its text and provider connections were reviewed against ConversationService, TripManager, replanning.py and the API save boundary. It removes the former booking claim and shows research candidates, selective budget replanning, deterministic validation and save-after-success persistence. Logical responsibilities are simplified; clarification paths are described in the README, and dashed provider links do not imply parallel execution. [Generation prompts](tripzy-system-architecture.prompt.md).
