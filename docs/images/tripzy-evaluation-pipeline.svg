@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc"><title id="title">Evaluations: pipeline + honest results</title><desc id="desc">A fixed portfolio subset is run three times against live Gemini with synthetic search replay and deterministic graders. Checkpoints retain completed quality failures and execution history. Reports separate measured model quality from execution success; travel availability and full-budget feasibility are not established.</desc><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse"><path d="M0,1 L8,5 L0,9" fill="none" stroke="#24483c" stroke-width="1.7"/></marker></defs><rect width="1600" height="1180" fill="#f7f5ef"/><g font-family="Arial, Helvetica, sans-serif">
+<text x="80" y="66" font-size="18" fill="#a46c42" font-weight="700" text-anchor="start">TRIPZY / ENGINEERING NOTES</text>
+<text x="80" y="130" font-size="44" fill="#24483c" font-weight="700" text-anchor="start">Evaluations: pipeline + honest results</text>
+<text x="80" y="175" font-size="23" fill="#54615b" font-weight="400" text-anchor="start">60 fixed portfolio cases × 3 repeats = 180 completed trials.</text>
+<rect x="80" y="230" width="430" height="180" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">1. Fixed portfolio subset</text>
+<text x="108" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">20 intake · 30 correction · 10 itinerary</text>
+<text x="108" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Selection fixed before model outputs</text>
+<text x="108" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Full datasets remain available</text>
+<rect x="570" y="230" width="430" height="180" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="596" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="615" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">2. Runner + model calls</text>
+<text x="598" y="324" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">3 repeats · live Gemini inference</text>
+<text x="598" y="356" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">Synthetic search replay: no Tavily calls</text>
+<text x="598" y="388" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">Network, cost and quotas still apply</text>
+<rect x="1060" y="230" width="460" height="180" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="1086" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="1105" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">3. Deterministic graders</text>
+<text x="1088" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Extracted fields and interest edits</text>
+<text x="1088" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Structured itinerary invariants</text>
+<text x="1088" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Grades model boundary, not travel truth</text>
+<path d="M510,320 L570,320" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M1000,320 L1060,320" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<text x="80" y="450" font-size="18" fill="#a46c42" font-weight="700" text-anchor="start">RETAINED BASELINE / original v1.0.0 evidence</text>
+<rect x="80" y="480" width="430" height="200" rx="22" fill="#eaf0e9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="508" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="530" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Intake / 60 trials</text>
+<text x="108" y="574" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">63.3% mean exact trial pass</text>
+<text x="108" y="606" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">85.8% field precision · 78.5% recall</text>
+<text x="108" y="638" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Worst repeat: 60.0%</text>
+<rect x="570" y="480" width="430" height="200" rx="22" fill="#eaf0e9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="596" y="508" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="615" y="530" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Corrections / 90 trials</text>
+<text x="598" y="574" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">90.0% exact trial pass</text>
+<text x="598" y="606" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">3.89% unrequested-field fraction</text>
+<text x="598" y="638" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Old 2% target was not met.</text>
+<rect x="1060" y="480" width="460" height="200" rx="22" fill="#eaf0e9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="1086" y="508" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="1105" y="530" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Itinerary / 30 trials</text>
+<text x="1088" y="574" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">100% tested invariant pass</text>
+<text x="1088" y="606" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Complete budget: UNMEASURED</text>
+<text x="1088" y="638" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">No availability or feasibility guarantee</text>
+<rect x="80" y="780" width="690" height="220" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="808" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="830" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">4. Reports + resumable checkpoints</text>
+<text x="108" y="874" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">JSON + Markdown retain per-case quality failures.</text>
+<text x="108" y="906" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Resume completed trials; retain execution history.</text>
+<text x="108" y="938" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">One earlier provider failure recovered on resume.</text>
+<text x="108" y="970" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Unresolved execution failure invalidates a baseline.</text>
+<rect x="850" y="780" width="670" height="220" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="876" y="808" width="5" height="28" rx="2" fill="#a46c42"/>
+<text x="895" y="830" font-size="26" fill="#a46c42" font-weight="700" text-anchor="start">Read the results within their scope</text>
+<text x="878" y="874" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Replay does not evaluate live search quality.</text>
+<text x="878" y="906" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Local runtime differs from locked production/CI.</text>
+<text x="878" y="938" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Missing comparable costs ≠ budget success.</text>
+<text x="878" y="970" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Regression test counts ≠ model accuracy.</text>
+<path d="M1520,320 L1550,320 L1550,735 L425,735 L425,780" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<line x1="80" x2="1520" y1="1040" y2="1040" stroke="#d6dbd1" stroke-width="2"/>
+<text x="80" y="1070" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">Manual eval runs are separate from the PR release gate; normal pushes do not call Gemini.</text>
+<text x="80" y="1100" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">These measurements do not establish prices, bookings, opening hours, transit timing or full trip costs.</text>
+</g></svg>

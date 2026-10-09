@@ -1,5 +1,11 @@
 # Tripzy: engineering a durable AI travel planner
 
+## Revision and failure safety at a glance
+
+![Budget-only revision flow: load saved state, work in isolation, preserve unrelated artifacts, rebuild hotels and itinerary, validate, and save only after success.](images/tripzy-revision-failure-safety.svg)
+
+This example assumes the interpreted correction changes only budget. The failure branch applies to processing failures and timeouts; persistence does not add a per-trip concurrency lock.
+
 Tripzy is a portfolio project built and shipped by Hifza with AI-assisted
 development. The work brings together a Next.js product, a FastAPI backend,
 bounded AI/search workflows, persisted state, and a reproducible release gate.

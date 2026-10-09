@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc"><title id="title">Database storage + access boundary</title><desc id="desc">The public API uses a server-only service-role credential through SupabaseTripRepository. The public.trips table stores UUID, JSONB state and timestamps. RLS denies direct anonymous and authenticated client access; backend access bypasses RLS. The public API has no account authorization and trip URLs function as access links.</desc><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse"><path d="M0,1 L8,5 L0,9" fill="none" stroke="#24483c" stroke-width="1.7"/></marker></defs><rect width="1600" height="1180" fill="#f7f5ef"/><g font-family="Arial, Helvetica, sans-serif">
+<text x="80" y="66" font-size="18" fill="#a46c42" font-weight="700" text-anchor="start">TRIPZY / ENGINEERING NOTES</text>
+<text x="80" y="130" font-size="44" fill="#24483c" font-weight="700" text-anchor="start">Database storage + access boundary</text>
+<text x="80" y="175" font-size="23" fill="#54615b" font-weight="400" text-anchor="start">One trips table stores serialized application state; RLS and API authorization are different boundaries.</text>
+<rect x="80" y="230" width="430" height="240" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Browser / public API client</text>
+<text x="108" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Uses a durable trip access URL</text>
+<text x="108" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Can read or revise that trip</text>
+<text x="108" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">No account-level API authorization</text>
+<text x="108" y="420" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Never receives the service-role key</text>
+<rect x="590" y="230" width="420" height="240" rx="22" fill="#eaf0e9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="616" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="635" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Trusted backend</text>
+<text x="618" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">TripRepository abstraction</text>
+<text x="618" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">SupabaseTripRepository adapter</text>
+<text x="618" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Server-only SUPABASE_KEY</text>
+<text x="618" y="420" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Service-role access bypasses RLS</text>
+<rect x="1090" y="230" width="430" height="280" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="1116" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="1135" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">public.trips</text>
+<text x="1118" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">id: UUID primary key</text>
+<text x="1118" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">state: JSONB, not null</text>
+<text x="1118" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">created_at: timestamp with time zone</text>
+<text x="1118" y="420" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">updated_at: timestamp with time zone</text>
+<path d="M510,340 L590,340" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M1010,340 L1090,340" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="532" y="315" font-size="18" fill="#a46c42" font-weight="700" text-anchor="start">API</text>
+<text x="1023" y="315" font-size="18" fill="#a46c42" font-weight="700" text-anchor="start">I/O</text>
+<path d="M295,470 L295,565 L1305,565 L1305,510" stroke="#9c463d" stroke-width="3" stroke-dasharray="8 7" fill="none"/>
+<path d="M778,552 L804,578 M804,552 L778,578" stroke="#9c463d" stroke-width="5"/>
+<text x="80" y="610" font-size="23" fill="#9c463d" font-weight="700" text-anchor="start">Direct anon/authenticated Supabase access: denied by RLS with no policies</text>
+<rect x="80" y="670" width="690" height="210" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="698" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="720" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Inside state / serialized TripState</text>
+<text x="108" y="764" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Request · destination research · flight/hotel/activity options</text>
+<text x="108" y="796" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Itinerary · workflow status · pending revision artifacts</text>
+<text x="108" y="828" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">State shape is owned by Python/Pydantic.</text>
+<rect x="850" y="670" width="670" height="210" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="876" y="698" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="895" y="720" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Two repository-owned migrations</text>
+<text x="878" y="764" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Create trips; enable row-level security.</text>
+<text x="878" y="796" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Before every update, a trigger refreshes updated_at.</text>
+<text x="878" y="828" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Local reset replays the schema; RLS probes roll back.</text>
+<text x="878" y="860" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Run verification probes locally, not in production.</text>
+<rect x="80" y="950" width="1440" height="140" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="978" width="5" height="28" rx="2" fill="#9c463d"/>
+<text x="125" y="1000" font-size="26" fill="#9c463d" font-weight="700" text-anchor="start">IMPORTANT: database RLS is not API authorization</text>
+<text x="108" y="1044" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">A person with the trip URL can use the public API to read or revise it. Use synthetic demo details.</text>
+<line x1="80" x2="1520" y1="1110" y2="1110" stroke="#d6dbd1" stroke-width="2"/>
+<text x="80" y="1140" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">No provider credentials or real trip identifiers appear in this diagram.</text>
+</g></svg>

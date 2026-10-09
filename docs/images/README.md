@@ -35,3 +35,16 @@ screenshot.
 ## System architecture diagram
 
 Updated October 9, 2026, against merged main at cece9b10a2db82d471f4c055ddbb883482a44d31. The built-in image generator edited the existing diagram; its text and provider connections were reviewed against ConversationService, TripManager, replanning.py and the API save boundary. It removes the former booking claim and shows research candidates, selective budget replanning, deterministic validation and save-after-success persistence. Logical responsibilities are simplified; clarification paths are described in the README, and dashed provider links do not imply parallel execution. [Generation prompts](tripzy-system-architecture.prompt.md).
+
+## Focused documentation explainers
+
+Authored as editable SVGs on October 9, 2026, against main `c74819ab3117ea69743fd14df9080683ceb4a2cf`. These explain the existing system; no application, database or production configuration changed. Each SVG has embedded title/description text, and the consuming document has an alt description and scope caption. Diagrams summarize the main idea; exact commands, source contracts and complete evidence remain in the documents.
+
+| SVG | Consuming document | Verified source |
+| --- | --- | --- |
+| [Revision and failure safety](tripzy-revision-failure-safety.svg) | [Case study](../portfolio-story.md) | `replanning.py`, `session_registry.py`, `api.py`, itinerary validation |
+| [Deployment boundaries](tripzy-deployment-boundaries.svg) | [Deployment](../deployment.md) | Deployment contract, hardening and CI workflow |
+| [Evaluation pipeline](tripzy-evaluation-pipeline.svg) | [Evaluations](../evals.md) | Eval runner, fixed portfolio profile and retained baseline |
+| [Database access](tripzy-database-access.svg) | [Database](../database.md) | Both SQL migrations, `TripState` and repository adapters |
+
+Local PNG previews were rendered and visually reviewed for text clipping, arrow placement and reading order. SVG XML and local document/image links were checked. The files contain no embedded scripts, external image/font dependencies, real trip identifiers or credential values. The evaluation diagram reuses measured evidence; no provider calls or new inference run were made to produce it.

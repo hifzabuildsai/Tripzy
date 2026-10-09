@@ -1,5 +1,11 @@
 # Database bootstrap and verification
 
+## Database access at a glance
+
+![The public API accesses UUID and JSONB trip records through a trusted backend credential; RLS denies direct clients but does not authenticate public API access.](images/tripzy-database-access.svg)
+
+The schema comes from the two repository-owned migrations. Backend service-role access bypasses RLS; anyone with a trip URL can use the public API to read or revise that trip. Exact SQL and local verification commands remain below.
+
 The `supabase/migrations` directory is the repository-owned source of truth for
 Tripzy's production database objects. Its two migrations match the migration
 history and schema currently deployed to the production Supabase project:
