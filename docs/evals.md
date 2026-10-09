@@ -1,5 +1,11 @@
 # Tripzy portfolio evaluations
 
+## Evaluation pipeline at a glance
+
+![Fixed cases and three Gemini repeats with synthetic search replay, deterministic graders, retained reports and the measured baseline with its limits.](images/tripzy-evaluation-pipeline.svg)
+
+These are the existing recorded baseline results, not a new evaluation run. Itinerary grading measures structured model output before production invariant rejection. Replay makes no Tavily calls; live Gemini inference still uses network and quota.
+
 ## What is measured
 
 Tripzy is a portfolio project. These evals measure the existing v1.0.0 model

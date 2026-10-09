@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc"><title id="title">Production deployment + boundaries</title><desc id="desc">The browser loads Next.js from Vercel and calls the Railway FastAPI backend over HTTPS. Railway accesses Gemini, Tavily and Supabase. Exact-origin CORS and process-local limits bound the public demo. CI validates but does not deploy; frontend and backend roll back independently.</desc><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse"><path d="M0,1 L8,5 L0,9" fill="none" stroke="#24483c" stroke-width="1.7"/></marker></defs><rect width="1600" height="1180" fill="#f7f5ef"/><g font-family="Arial, Helvetica, sans-serif">
+<text x="80" y="66" font-size="18" fill="#a46c42" font-weight="700" text-anchor="start">TRIPZY / ENGINEERING NOTES</text>
+<text x="80" y="130" font-size="44" fill="#24483c" font-weight="700" text-anchor="start">Production deployment + boundaries</text>
+<text x="80" y="175" font-size="23" fill="#54615b" font-weight="400" text-anchor="start">Three independently managed services; provider credentials stay on the backend.</text>
+<rect x="80" y="230" width="400" height="200" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Browser</text>
+<text x="108" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Loads the trip workspace</text>
+<text x="108" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Runs the frontend UI</text>
+<text x="108" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Sends HTTPS API calls</text>
+<rect x="560" y="230" width="400" height="200" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="586" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="605" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Vercel / Next.js</text>
+<text x="588" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Frontend root: frontend/</text>
+<text x="588" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Public API URL in bundle</text>
+<text x="588" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">No provider credentials</text>
+<rect x="1040" y="230" width="480" height="200" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="1066" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="1085" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Railway / FastAPI</text>
+<text x="1068" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Root Dockerfile → app.server</text>
+<text x="1068" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">One replica · non-root container</text>
+<text x="1068" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">PORT comes from Railway</text>
+<path d="M480,330 L560,330" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M280,230 L280,205 L1280,205 L1280,230" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<text x="800" y="198" font-size="18" fill="#a46c42" font-weight="700" text-anchor="middle">Browser → backend: HTTPS API requests</text>
+<rect x="80" y="550" width="440" height="170" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="578" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="600" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Supabase / PostgreSQL</text>
+<text x="108" y="644" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">TripState stored as JSONB</text>
+<text x="108" y="676" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Trusted backend accesses RLS</text>
+<rect x="580" y="550" width="440" height="170" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="606" y="578" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="625" y="600" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Gemini</text>
+<text x="608" y="644" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Via OpenAI Agents SDK</text>
+<text x="608" y="676" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Interpretation + reasoning</text>
+<rect x="1080" y="550" width="440" height="170" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="1106" y="578" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="1125" y="600" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Tavily</text>
+<text x="1108" y="644" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Search for research specialists</text>
+<text x="1108" y="676" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Candidate evidence, not bookings</text>
+<path d="M1280,430 L1280,485 L300,485 L300,550" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M1280,485 L800,485 L800,550" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M1280,485 L1300,485 L1300,550" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<text x="80" y="755" font-size="21" fill="#a46c42" font-weight="700" text-anchor="start">Backend-only: SUPABASE_KEY · GEMINI_API_KEY · TAVILY_API_KEY</text>
+<rect x="80" y="790" width="690" height="240" rx="22" fill="#eaf0e9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="818" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="840" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Public-demo controls</text>
+<text x="108" y="884" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Exact frontend-origin CORS</text>
+<text x="108" y="916" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">16 KiB body · 4,000-character message limit</text>
+<text x="108" y="948" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">20 writes / 60 s · max 2 planning jobs</text>
+<text x="108" y="980" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">1 s queue wait · 240 s processing timeout</text>
+<rect x="850" y="790" width="670" height="240" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="876" y="818" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="895" y="840" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Release + rollback</text>
+<text x="878" y="884" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">GitHub CI validates; it never deploys.</text>
+<text x="878" y="916" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Vercel and Railway deploy independently.</text>
+<text x="878" y="948" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Roll back either service independently.</text>
+<text x="878" y="980" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Changing the browser API URL needs a rebuild.</text>
+<line x1="80" x2="1520" y1="1060" y2="1060" stroke="#d6dbd1" stroke-width="2"/>
+<text x="80" y="1090" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">/health checks the process, not database or provider readiness.</text>
+<text x="80" y="1120" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">Limits are process-local, not distributed quotas; trip URLs are access links, not account authorization.</text>
+</g></svg>

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc"><title id="title">Selective revision + failure safety</title><desc id="desc">Load saved state, reconstruct a working session, interpret correction and compute Python dependencies. Preserve unrelated artifacts; rebuild hotels and itinerary. Save only after success; a failure retains the saved baseline.</desc><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse"><path d="M0,1 L8,5 L0,9" fill="none" stroke="#24483c" stroke-width="1.7"/></marker></defs><rect width="1600" height="1180" fill="#f7f5ef"/><g font-family="Arial, Helvetica, sans-serif">
+<text x="80" y="66" font-size="18" fill="#a46c42" font-weight="700" text-anchor="start">TRIPZY / ENGINEERING NOTES</text>
+<text x="80" y="130" font-size="44" fill="#24483c" font-weight="700" text-anchor="start">Selective revision + failure safety</text>
+<text x="80" y="175" font-size="23" fill="#54615b" font-weight="400" text-anchor="start">Example: change only the total budget from $2,000 to $2,500.</text>
+<rect x="80" y="230" width="320" height="180" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">1. Saved baseline</text>
+<text x="108" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Same trip ID</text>
+<text x="108" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Read through repository</text>
+<text x="108" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">No in-place durable edit</text>
+<rect x="450" y="230" width="320" height="180" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="476" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="495" y="280" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">2. Working session</text>
+<text x="478" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Reconstruct TripState</text>
+<text x="478" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Process isolated state</text>
+<text x="478" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">SessionRegistry loads it</text>
+<rect x="820" y="230" width="320" height="180" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="846" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="865" y="280" font-size="23" fill="#24483c" font-weight="700" text-anchor="start">3. Interpret correction</text>
+<text x="848" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Gemini → typed edits</text>
+<text x="848" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Interpretation can vary</text>
+<text x="848" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Python owns truth</text>
+<rect x="1190" y="230" width="330" height="180" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="1216" y="258" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="1235" y="280" font-size="22" fill="#24483c" font-weight="700" text-anchor="start">4. Apply + dependencies</text>
+<text x="1218" y="324" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Compare changed fields</text>
+<text x="1218" y="356" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Budget-only example</text>
+<text x="1218" y="388" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Python replanning graph</text>
+<path d="M400,320 L450,320" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M770,320 L820,320" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M1140,320 L1190,320" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<rect x="80" y="480" width="690" height="180" rx="22" fill="#eaf0e9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="508" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="530" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">PRESERVE unrelated artifacts</text>
+<text x="108" y="574" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Destination research · flight options · activity options</text>
+<text x="108" y="606" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Their budget dependencies are unchanged.</text>
+<rect x="850" y="480" width="670" height="180" rx="22" fill="#eaf0e9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="876" y="508" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="895" y="530" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">REBUILD affected artifacts</text>
+<text x="878" y="574" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Hotel options + itinerary</text>
+<text x="878" y="606" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Retain unrelated request requirements.</text>
+<path d="M1355,410 L1355,450 L425,450 L425,480" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M1355,450 L1185,450 L1185,480" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<rect x="80" y="730" width="1440" height="130" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="758" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="780" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">Research-backed synthesis + deterministic validation</text>
+<text x="108" y="824" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Build from preserved and refreshed research; check dates, day count and eligible activities.</text>
+<path d="M425,660 L425,695 L700,695 L700,730" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M1185,660 L1185,695 L900,695 L900,730" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<rect x="80" y="930" width="690" height="140" rx="22" fill="#eaf0e9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="106" y="958" width="5" height="28" rx="2" fill="#24483c"/>
+<text x="125" y="980" font-size="26" fill="#24483c" font-weight="700" text-anchor="start">SUCCESS → persist the revised state</text>
+<text x="108" y="1024" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">API saves through TripRepository; same durable URL.</text>
+<rect x="850" y="930" width="670" height="140" rx="22" fill="#fffdf9" stroke="#d5d9cf" stroke-width="2"/>
+<rect x="876" y="958" width="5" height="28" rx="2" fill="#9c463d"/>
+<text x="895" y="980" font-size="26" fill="#9c463d" font-weight="700" text-anchor="start">FAILURE / TIMEOUT → no replacement</text>
+<text x="878" y="1024" font-size="22" fill="#54615b" font-weight="400" text-anchor="start">Previously saved state stays available for retry.</text>
+<path d="M800,860 L800,900 L425,900 L425,930" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<path d="M800,900 L1185,900 L1185,930" fill="none" stroke="#24483c" stroke-width="3" stroke-linejoin="round"  marker-end="url(#arrow)" />
+<line x1="80" x2="1520" y1="1100" y2="1100" stroke="#d6dbd1" stroke-width="2"/>
+<text x="80" y="1130" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">Assumes extraction changed only budget; unintended fields remain a measured limitation.</text>
+<text x="80" y="1160" font-size="21" fill="#54615b" font-weight="400" text-anchor="start">This save boundary does not provide a per-trip lock for concurrent revisions.</text>
+</g></svg>

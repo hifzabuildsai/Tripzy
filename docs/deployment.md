@@ -1,5 +1,11 @@
 # Tripzy Production Deployment
 
+## Deployment at a glance
+
+![Browser requests, Vercel frontend, Railway backend, backend-only provider access, public-demo controls and independent deployment rollback.](images/tripzy-deployment-boundaries.svg)
+
+The browser calls Railway directly over HTTPS; Vercel serves the UI. Defaults shown are process-local demo controls, not distributed quotas. CI validates code and containers; it does not deploy them.
+
 Tripzy is deployed as independently managed frontend, backend, and persistence services:
 
 ```text
